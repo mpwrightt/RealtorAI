@@ -1,0 +1,382 @@
+'use client';
+
+import { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '@/convex/_generated/api';
+import { Id } from '@/convex/_generated/dataModel';
+import { Mail, MessageSquare, Send, Phone, User, Clock, Plus } from 'lucide-react';
+
+interface MessagesInboxProps {
+  agentId: Id<"agents">;
+}
+
+export default function MessagesInbox({ agentId }: MessagesInboxProps) {
+  const [selectedClient, setSelectedClient] = useState<string | null>(null);
+  const [replyMessage, setReplyMessage] = useState('');
+  const [replyType, setReplyType] = useState<'sms' | 'email'>('sms');
+  const [showNewMessage, setShowNewMessage] = useState(false);
+  const [newMessageClient, setNewMessageClient] = useState<string>('');
+  const [newMessageType, setNewMessageType] = useState<'sms' | 'email'>('sms');
+  const [newMessageBody, setNewMessageBody] = useState('');
+  
+  const messages = useQuery(api.messages.getMessagesByAgent, { agentId, limit: 100 });
+  const unreadCount = useQuery(api.messages.getUnreadCount, { agentId });
+  const buyerSessions = useQuery(api.buyerSessions.getBuyerSessionsByAgent, { agentId });
+  const sellerSessions = useQuery(api.sellerSessions.getSellerSessionsByAgent, { agentId });
+  const sendMessage = useMutation(api.messages.sendMessage);
+  const markAsRead = useMutation(api.messages.markAsRead);
+  const markConversationAsRead = useMutation(api.messages.markConversationAsRead);
+  
+  // Group messages by client
+  const messagesByClient = messages?.reduce((acc: any, msg: any) => {
+    if (!acc[msg.clientId]) {
+      acc[msg.clientId] = {
+        clientId: msg.clientId,
+        clientName: msg.clientName,
+        clientType: msg.clientType,
+        clientPhone: msg.clientPhone,
+        clientEmail: msg.clientEmail,
+        messages: [],
+        unreadCount: 0,
+        lastMessageAt: msg.createdAt,
+      };
+    }
+    acc[msg.clientId].messages.push(msg);
+    if (!msg.read && msg.direction === 'inbound') {
+      acc[msg.clientId].unreadCount++;
+    }
+    if (msg.createdAt > acc[msg.clientId].lastMessageAt) {
+      acc[msg.clientId].lastMessageAt = msg.createdAt;
+    }
+    return acc;
+  }, {} as Record<string, any>) || {};
+  
+  const clients = Object.values(messagesByClient).sort((a: any, b: any) => 
+    b.lastMessageAt - a.lastMessageAt
+  );
+  
+  const selectedConversation = selectedClient ? messagesByClient[selectedClient] : null;
+  
+  const handleSelectClient = async (clientId: string) => {
+    setSelectedClient(clientId);
+    // Mark all messages in this conversation as read
+    await markConversationAsRead({ agentId, clientId });
+  };
+  
+  const handleSendReply = async () => {
+    if (!selectedConversation || !replyMessage.trim()) return;
+    
+    await sendMessage({
+      agentId,
+      clientType: selectedConversation.clientType,
+      clientId: selectedConversation.clientId,
+      clientName: selectedConversation.clientName,
+      clientPhone: selectedConversation.clientPhone,
+      clientEmail: selectedConversation.clientEmail,
+      type: replyType,
+      body: replyMessage,
+    });
+    
+    setReplyMessage('');
+  };
+  
+  const formatDate = (timestamp: number) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString();
+  };
+  
+  const handleNewMessage = async () => {
+    if (!newMessageClient || !newMessageBody.trim()) return;
+    
+    const selectedSession = [...(buyerSessions || []), ...(sellerSessions || [])].find(
+      s => s._id === newMessageClient
+    );
+    
+    if (!selectedSession) return;
+    
+    const isBuyer = buyerSessions?.some((b: any) => b._id === newMessageClient);
+    
+    await sendMessage({
+      agentId,
+      clientType: isBuyer ? 'buyer' : 'seller',
+      clientId: selectedSession._id,
+      clientName: isBuyer ? (selectedSession as any).buyerName : (selectedSession as any).sellerName,
+      clientPhone: (selectedSession as any).phone,
+      clientEmail: (selectedSession as any).email,
+      type: newMessageType,
+      body: newMessageBody,
+    });
+    
+    setNewMessageBody('');
+    setShowNewMessage(false);
+    setSelectedClient(selectedSession._id);
+  };
+  
+  const allClients = [
+    ...(buyerSessions || []).map((b: any) => ({ ...b, type: 'buyer', name: b.buyerName })),
+    ...(sellerSessions || []).map((s: any) => ({ ...s, type: 'seller', name: s.sellerName })),
+  ];
+  
+  return (
+    <Card className="h-[600px] flex flex-col">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <MessageSquare className="h-5 w-5" />
+            Messages
+            {unreadCount && unreadCount > 0 && (
+              <Badge variant="destructive" className="ml-2">
+                {unreadCount}
+              </Badge>
+            )}
+          </CardTitle>
+          
+          <Dialog open={showNewMessage} onOpenChange={setShowNewMessage}>
+            <DialogTrigger asChild>
+              <Button size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                New Message
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Send Message to Client</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 pt-4">
+                <div>
+                  <label className="text-sm font-medium">Select Client</label>
+                  <Select value={newMessageClient} onValueChange={setNewMessageClient}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose a buyer or seller..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {allClients.map(client => (
+                        <SelectItem key={client._id} value={client._id}>
+                          {client.name} ({client.type})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium">Message Type</label>
+                  <div className="flex gap-2 mt-2">
+                    <Button
+                      variant={newMessageType === 'sms' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setNewMessageType('sms')}
+                    >
+                      <MessageSquare className="h-4 w-4 mr-1" />
+                      SMS
+                    </Button>
+                    <Button
+                      variant={newMessageType === 'email' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setNewMessageType('email')}
+                    >
+                      <Mail className="h-4 w-4 mr-1" />
+                      Email
+                    </Button>
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium">Message</label>
+                  <Textarea
+                    placeholder="Type your message..."
+                    value={newMessageBody}
+                    onChange={(e) => setNewMessageBody(e.target.value)}
+                    className="min-h-[100px] mt-2"
+                  />
+                </div>
+                
+                <Button onClick={handleNewMessage} disabled={!newMessageClient || !newMessageBody.trim()} className="w-full">
+                  <Send className="h-4 w-4 mr-2" />
+                  Send Message
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </CardHeader>
+      
+      <CardContent className="flex-1 flex gap-4 overflow-hidden p-0">
+        {/* Client List */}
+        <div className="w-1/3 border-r">
+          <ScrollArea className="h-full">
+            <div className="p-4 space-y-2">
+              {clients.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Mail className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                  <p className="text-sm">No messages yet</p>
+                </div>
+              ) : (
+                clients.map((client: any) => (
+                  <div
+                    key={client.clientId}
+                    className={`p-3 rounded-lg border cursor-pointer hover:bg-muted/50 transition-colors ${
+                      selectedClient === client.clientId ? 'bg-muted border-primary' : ''
+                    }`}
+                    onClick={() => handleSelectClient(client.clientId)}
+                  >
+                    <div className="flex items-start justify-between mb-1">
+                      <div className="flex items-center gap-2">
+                        <User className="h-4 w-4 text-muted-foreground" />
+                        <span className="font-semibold text-sm">{client.clientName}</span>
+                      </div>
+                      {client.unreadCount > 0 && (
+                        <Badge variant="destructive" className="text-xs">
+                          {client.unreadCount}
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Badge variant="outline" className="text-xs capitalize">
+                        {client.clientType}
+                      </Badge>
+                      <span>•</span>
+                      <span>{formatDate(client.lastMessageAt)}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
+                      {client.messages[client.messages.length - 1]?.body}
+                    </p>
+                  </div>
+                ))
+              )}
+            </div>
+          </ScrollArea>
+        </div>
+        
+        {/* Conversation View */}
+        <div className="flex-1 flex flex-col">
+          {selectedConversation ? (
+            <>
+              {/* Conversation Header */}
+              <div className="p-4 border-b">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold">{selectedConversation.clientName}</h3>
+                    <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
+                      {selectedConversation.clientPhone && (
+                        <div className="flex items-center gap-1">
+                          <Phone className="h-3 w-3" />
+                          {selectedConversation.clientPhone}
+                        </div>
+                      )}
+                      {selectedConversation.clientEmail && (
+                        <div className="flex items-center gap-1">
+                          <Mail className="h-3 w-3" />
+                          {selectedConversation.clientEmail}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <Badge variant="outline" className="capitalize">
+                    {selectedConversation.clientType}
+                  </Badge>
+                </div>
+              </div>
+              
+              {/* Messages */}
+              <ScrollArea className="flex-1 p-4">
+                <div className="space-y-4">
+                  {selectedConversation.messages.slice().reverse().map((msg: any) => (
+                    <div
+                      key={msg._id}
+                      className={`flex ${msg.direction === 'outbound' ? 'justify-end' : 'justify-start'}`}
+                    >
+                      <div className={`max-w-[70%] rounded-lg p-3 ${
+                        msg.direction === 'outbound'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-muted'
+                      }`}>
+                        {msg.subject && (
+                          <div className="font-semibold text-sm mb-1">{msg.subject}</div>
+                        )}
+                        <p className="text-sm whitespace-pre-wrap">{msg.body}</p>
+                        <div className="flex items-center gap-2 mt-2 text-xs opacity-70">
+                          {msg.type === 'sms' ? <MessageSquare className="h-3 w-3" /> : <Mail className="h-3 w-3" />}
+                          <span>{formatDate(msg.createdAt)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+              
+              {/* Reply Box */}
+              <div className="p-4 border-t space-y-3">
+                <div className="flex gap-2">
+                  <Button
+                    variant={replyType === 'sms' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setReplyType('sms')}
+                  >
+                    <MessageSquare className="h-4 w-4 mr-1" />
+                    SMS
+                  </Button>
+                  <Button
+                    variant={replyType === 'email' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setReplyType('email')}
+                  >
+                    <Mail className="h-4 w-4 mr-1" />
+                    Email
+                  </Button>
+                </div>
+                <div className="flex gap-2">
+                  <Textarea
+                    placeholder={`Type your ${replyType === 'sms' ? 'SMS' : 'email'} message...`}
+                    value={replyMessage}
+                    onChange={(e) => setReplyMessage(e.target.value)}
+                    className="min-h-[80px]"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                        handleSendReply();
+                      }
+                    }}
+                  />
+                </div>
+                <div className="flex justify-between items-center">
+                  <p className="text-xs text-muted-foreground">
+                    Press {typeof navigator !== 'undefined' && navigator.platform.includes('Mac') ? 'Cmd' : 'Ctrl'}+Enter to send
+                  </p>
+                  <Button onClick={handleSendReply} disabled={!replyMessage.trim()}>
+                    <Send className="h-4 w-4 mr-2" />
+                    Send
+                  </Button>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="flex-1 flex items-center justify-center text-muted-foreground">
+              <div className="text-center">
+                <MessageSquare className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                <p>Select a conversation to view messages</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}

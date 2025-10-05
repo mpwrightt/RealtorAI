@@ -20,6 +20,7 @@ import {
   IconUsers,
   IconSparkles,
   IconBrandOpenai,
+  IconPresentation,
 } from "@tabler/icons-react"
 
 import { NavDocuments } from "@/app/dashboard/nav-documents"
@@ -47,44 +48,42 @@ const data = {
       icon: IconDashboard,
     },
     {
-      title: "Payment gated",
-      url: "/dashboard/payment-gated",
-      icon: IconSparkles,
+      title: "Messages",
+      url: "/dashboard/messages",
+      icon: IconMessageCircle,
+    },
+    {
+      title: "My Listings",
+      url: "/dashboard/listings",
+      icon: IconListDetails,
+    },
+    {
+      title: "Buyers",
+      url: "/dashboard/buyers",
+      icon: IconUsers,
+    },
+    {
+      title: "Sellers",
+      url: "/dashboard/sellers",
+      icon: IconChartBar,
+    },
+    {
+      title: "Clients",
+      url: "/dashboard/clients",
+      icon: IconUsers,
+    },
+    {
+      title: "Demo Mode",
+      url: "/dashboard/demo",
+      icon: IconPresentation,
+      badge: "Admin",
     },
   ],
   navSecondary: [
-    {
-      title: "Settings",
-      url: "#",
-      icon: IconSettings,
-    },
-    {
-      title: "Get Help",
-      url: "#",
-      icon: IconHelp,
-    },
-    {
-      title: "Search",
-      url: "#",
-      icon: IconSearch,
-    },
+    // Optional: Can add Settings and Help pages later
   ],
   documents: [
-    {
-      name: "Data Library",
-      url: "#",
-      icon: IconDatabase,
-    },
-    {
-      name: "Reports",
-      url: "#",
-      icon: IconReport,
-    },
-    {
-      name: "Word Assistant",
-      url: "#",
-      icon: IconFileWord,
-    },
+    // Removed placeholder links - not needed for real estate platform
   ],
 }
 
@@ -98,10 +97,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               asChild
               className="data-[slot=sidebar-menu-button]:!p-1.5"
             >
-              <Link href="/">
+              <Link href="/dashboard">
                 <ChatMaxingIconColoured className="!size-6" />
-                <span className="text-base font-semibold">Starter DIY</span>
-                <Badge variant="outline" className="text-muted-foreground  text-xs">Demo</Badge>
+                <span className="text-base font-semibold">Deal Finder</span>
+                <Badge variant="outline" className="text-muted-foreground text-xs">Agent</Badge>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

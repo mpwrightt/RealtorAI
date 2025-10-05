@@ -1,0 +1,267 @@
+# Cursor AI Rules - Neighborhood Deal Finder
+
+## Primary Workflow
+
+When working on ANY task in this project:
+
+1. **ALWAYS check AGENTS.md files first**
+   - Start with `/AGENTS.md` for project overview
+   - Check directory-specific `AGENTS.md` in your working area:
+     - `app/AGENTS.md` for frontend routes
+     - `convex/AGENTS.md` for backend functions
+     - `components/AGENTS.md` for React components
+     - `lib/AGENTS.md` for utilities and integrations
+     - `plan/AGENTS.md` for implementation guidance
+
+2. **Follow the implementation plan**
+   - Check `plan/README.md` for phase overview
+   - Find relevant task file in phase folders
+   - Follow subtasks in order
+   - Reference code examples in task files
+
+3. **Maintain consistency**
+   - Follow patterns shown in AGENTS.md files
+   - Use established naming conventions
+   - Match existing code style
+   - Respect project structure
+
+## Project Context
+
+This is a **Next.js 15 real estate platform** with:
+- **Convex** for real-time database and backend
+- **OpenRouter** for AI integration (Claude 3.5 Sonnet)
+- **Clerk** for agent authentication
+- **Session-based auth** for buyers/sellers (no login required)
+- **AG-UI protocol** for transparent AI interactions
+- **TailwindCSS v4 + shadcn/ui** for styling
+
+## Code Style Requirements
+
+### TypeScript
+- Use TypeScript for ALL files
+- Define proper types, avoid `any`
+- Use `interface` for objects, `type` for unions
+- Export types alongside functions
+
+### React Components
+- Prefer server components (default in App Router)
+- Mark client components with `'use client'`
+- Keep components focused (< 200 lines)
+- Use `async/await` in server components for data fetching
+
+### File Naming
+- Components: **PascalCase** (e.g., `PropertyCard.tsx`)
+- Utilities: **kebab-case** (e.g., `buyer-auth.ts`)
+- Convex functions: **camelCase** files (e.g., `buyerSessions.ts`)
+
+### Imports
+- Use absolute imports with `@/` prefix
+- Group: React/Next, third-party, local, utilities
+- Import types separately: `import type { ... }`
+
+## Convex Patterns
+
+### Always Use
+- `query` for reading data (pure, cacheable)
+- `mutation` for writing data (transactional)
+- `action` for external API calls (not transactional)
+- Input validation with `v` validators from `convex/values`
+
+### Example
+```typescript
+export const myQuery = query({
+  args: { id: v.id("tableName") },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.id);
+  },
+});
+```
+
+## Authentication Patterns
+
+### Agent Routes (Clerk)
+```typescript
+const { userId } = await auth();
+if (!userId) redirect('/sign-in');
+```
+
+### Buyer/Seller Routes (Session-based)
+```typescript
+const session = await verifyBuyerSession(sessionCode);
+if (!session) redirect('/');
+```
+
+## When Adding New Features
+
+1. **Check if task exists in plan/**
+   - Search phase folders for related task
+   - Follow subtasks and code examples
+   - Mark off completed subtasks
+
+2. **Verify prerequisites**
+   - Check task dependencies
+   - Ensure required setup is complete
+
+3. **Follow established patterns**
+   - Review similar existing code
+   - Match structure and style
+   - Use same libraries and utilities
+
+4. **Test incrementally**
+   - Test as you build
+   - Verify edge cases
+   - Check acceptance criteria
+
+## Common Tasks Reference
+
+### Adding a Route
+1. Check `app/AGENTS.md` for routing patterns
+2. Create in appropriate `app/` subdirectory
+3. Add `page.tsx`, optional `layout.tsx`
+4. Implement data fetching (server or client)
+5. Test authentication
+
+### Adding Convex Function
+1. Check `convex/AGENTS.md` for patterns
+2. Add to appropriate file in `convex/`
+3. Define with `query`, `mutation`, or `action`
+4. Add input validation with `v.*`
+5. Export and use in frontend
+
+### Adding Component
+1. Check `components/AGENTS.md` for patterns
+2. Create in appropriate subfolder
+3. Define props interface
+4. Use server component unless interactivity needed
+5. Add to parent component
+
+### Adding AI Tool
+1. Check `lib/AGENTS.md` for OpenRouter patterns
+2. Define schema in `lib/openrouter/tools.ts`
+3. Implement handler in `lib/openrouter/tool-handlers.ts`
+4. Test with sample queries
+
+## Important Rules
+
+### DO
+- ✅ Read AGENTS.md before starting any work
+- ✅ Follow plan/ folder task files
+- ✅ Use TypeScript with proper types
+- ✅ Test incrementally
+- ✅ Match existing patterns
+- ✅ Validate all inputs in Convex functions
+- ✅ Handle errors gracefully
+- ✅ Use Next.js Image component for images
+- ✅ Implement loading states
+- ✅ Write accessible HTML
+
+### DON'T
+- ❌ Skip reading AGENTS.md files
+- ❌ Deviate from plan without good reason
+- ❌ Use `any` type without justification
+- ❌ Create client components unnecessarily
+- ❌ Hardcode API keys or secrets
+- ❌ Skip input validation
+- ❌ Ignore error handling
+- ❌ Use inline styles (use Tailwind)
+- ❌ Create deeply nested components
+
+## Project Structure Quick Reference
+
+```
+/
+├── AGENTS.md                    # START HERE - Project overview
+├── .cursorrules                 # This file
+├── app/                         # Next.js routes
+│   ├── AGENTS.md               # Frontend routing guide
+│   ├── buyer/[sessionCode]/    # Buyer portal
+│   ├── seller/[sessionCode]/   # Seller portal
+│   ├── dashboard/              # Agent dashboard
+│   └── api/                    # API routes
+├── convex/                      # Backend functions
+│   ├── AGENTS.md               # Backend patterns guide
+│   ├── schema.ts               # Database schema
+│   └── *.ts                    # Queries, mutations, actions
+├── components/                  # React components
+│   ├── AGENTS.md               # Component patterns guide
+│   └── */                      # Feature-specific components
+├── lib/                         # Utilities and integrations
+│   ├── AGENTS.md               # Utils and API guide
+│   ├── openrouter/             # OpenRouter AI service
+│   └── integrations/           # External APIs
+└── plan/                        # Implementation plan
+    ├── AGENTS.md               # Plan navigation guide
+    ├── README.md               # Plan overview
+    ├── PROJECT-OVERVIEW.md     # Technical architecture
+    ├── QUICK-START.md          # Day-by-day timeline
+    └── phase-*/                # Task files by phase
+```
+
+## Environment Setup
+
+Required environment variables (see `.env.example`):
+```bash
+# Clerk (agent authentication)
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
+CLERK_SECRET_KEY=
+
+# Convex (database)
+CONVEX_DEPLOYMENT=
+NEXT_PUBLIC_CONVEX_URL=
+
+# OpenRouter (AI)
+OPENROUTER_API_KEY=
+OPENROUTER_MODEL=anthropic/claude-3.5-sonnet
+
+# External APIs (optional for development)
+MAPBOX_ACCESS_TOKEN=
+MLS_API_KEY=
+```
+
+## Development Commands
+
+```bash
+# Start development
+npm run dev                     # Next.js dev server
+npx convex dev                  # Convex sync (separate terminal)
+
+# Build and test
+npm run build                   # Production build
+npm run lint                    # ESLint
+npm test                        # Run tests
+
+# Convex
+npx convex deploy --prod        # Deploy to production
+npx convex run module:function  # Test function
+```
+
+## Troubleshooting
+
+### Check AGENTS.md files first
+Each has a troubleshooting section specific to that area.
+
+### Common Issues
+- **Build errors**: Check `npm run build`, verify imports
+- **Convex connection**: Ensure `npx convex dev` is running
+- **Auth issues**: Verify Clerk keys, test incognito mode
+- **Route not found**: Check file naming, ensure `page.tsx` exists
+
+## Getting Help
+
+1. Check relevant AGENTS.md troubleshooting section
+2. Review task file in plan/ folder
+3. Check external docs (Next.js, Convex, OpenRouter)
+4. Search codebase for similar patterns
+
+## Summary
+
+**ALWAYS START BY READING THE RELEVANT AGENTS.MD FILE.**
+
+This ensures you:
+- Understand the context
+- Follow established patterns
+- Write consistent code
+- Avoid common mistakes
+- Build features the right way
+
+When in doubt, check AGENTS.md. When planning work, check plan/. When writing code, match existing patterns.

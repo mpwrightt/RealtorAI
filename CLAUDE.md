@@ -2,97 +2,106 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## PRIMARY WORKFLOW - READ THIS FIRST
+
+**Before writing ANY code, you MUST:**
+
+1. **Check AGENTS.md files first** - Start with `/AGENTS.md`, then check directory-specific ones:
+   - `app/AGENTS.md` - Frontend routing and auth patterns
+   - `convex/AGENTS.md` - Backend functions and schema
+   - `components/AGENTS.md` - Component patterns
+   - `lib/AGENTS.md` - OpenRouter AI, utilities, external APIs
+   - `plan/AGENTS.md` - Implementation plan navigation
+
+2. **Follow the implementation plan** in `plan/` folder:
+   - Check `plan/README.md` for phase overview
+   - Find relevant task file in phase folders
+   - Follow subtasks with code examples
+   - Verify acceptance criteria
+
+3. **Match existing patterns** from AGENTS.md files
+
 ## Project Overview
-This is a Next.js 15 SaaS starter template with integrated authentication (Clerk), real-time database (Convex), and subscription billing (Clerk Billing).
 
-## Development Commands
-
-### Core Development
-- `npm run dev` - Start development server with Turbopack on http://localhost:3000
-- `npm run build` - Build production bundle
-- `npm start` - Start production server
-- `npm run lint` - Run Next.js linting
-
-### Convex Development
-- `npx convex dev` - Start Convex development server (required for database)
-- Run this in a separate terminal alongside `npm run dev`
-
-## Architecture Overview
+**Neighborhood Deal Finder** - A Next.js 15 real estate platform enabling agents to create personalized buyer/seller portals with AI-powered property analysis.
 
 ### Tech Stack
-- **Next.js 15** with App Router and Turbopack
-- **Convex** for real-time database and serverless functions
-- **Clerk** for authentication and user management
-- **Clerk Billing** for subscription payments
-- **TailwindCSS v4** with custom UI components (shadcn/ui)
-- **TypeScript** throughout
+- **Next.js 15** (App Router, Turbopack)
+- **Convex** (real-time database, serverless functions)
+- **OpenRouter** (AI with Claude 3.5 Sonnet)
+- **Clerk** (agent authentication)
+- **Session-based auth** (buyers/sellers, no login)
+- **AG-UI protocol** (transparent AI interactions)
+- **TailwindCSS v4 + shadcn/ui**
 
-### Key Architectural Patterns
+{{ ... }}
 
-#### Authentication Flow
-1. Clerk handles all authentication via `middleware.ts`
-2. JWT tokens are configured with "convex" template in Clerk dashboard
-3. Users are synced to Convex via webhooks at `/api/clerk-users-webhook`
-4. Protected routes redirect unauthenticated users to sign-in
+## Code Style Requirements
 
-#### Database Architecture
-- **Convex** provides real-time sync and serverless functions
-- Schema defined in `convex/schema.ts`:
-  - `users` table: Synced from Clerk (externalId maps to Clerk ID)
-  - `paymentAttempts` table: Tracks subscription payments
-- All database operations in `convex/` directory
+### TypeScript
+- Use TypeScript for ALL files, avoid `any`
+- `interface` for objects, `type` for unions
+- Export types alongside functions
 
-#### Payment Integration
-1. Clerk Billing handles subscription management
-2. Custom pricing component in `components/custom-clerk-pricing.tsx`
-3. Payment-gated content uses `<ClerkBillingGate>` component
-4. Webhook events update payment status in Convex
+### React Components
+- Prefer server components (default)
+- Mark client with `'use client'`
+- Keep focused (< 200 lines)
 
-### Project Structure
-```
-app/
-├── (landing)/         # Public landing page components
-├── dashboard/         # Protected dashboard area
-│   └── payment-gated/ # Subscription-only content
-├── layout.tsx         # Root layout with providers
-└── middleware.ts      # Auth protection
+### File Naming
+- Components: **PascalCase** (`PropertyCard.tsx`)
+- Utilities: **kebab-case** (`buyer-auth.ts`)
+- Convex: **camelCase** (`buyerSessions.ts`)
 
-components/
-├── ui/               # shadcn/ui components
-├── custom-clerk-pricing.tsx
-└── ConvexClientProvider.tsx
+### Imports
+- Use `@/` prefix for absolute imports
+- Import types separately: `import type { ... }`
 
-convex/
-├── schema.ts         # Database schema
-├── users.ts          # User CRUD operations
-├── paymentAttempts.ts # Payment tracking
-├── http.ts           # Webhook handlers
-└── auth.config.ts    # JWT configuration
+## Convex Patterns
+
+```typescript
+export const myQuery = query({
+  args: { id: v.id("tableName") },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.id);
+  },
+});
 ```
 
-## Key Integration Points
+## Authentication Patterns
 
-### Environment Variables Required
-- `CONVEX_DEPLOYMENT` and `NEXT_PUBLIC_CONVEX_URL`
-- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY`
-- `NEXT_PUBLIC_CLERK_FRONTEND_API_URL` (from Clerk JWT template)
-- `CLERK_WEBHOOK_SECRET` (set in Convex dashboard)
+### Agent Routes (Clerk)
+```typescript
+const { userId } = await auth();
+if (!userId) redirect('/sign-in');
+```
 
-### Webhook Configuration
-Clerk webhooks must be configured to:
-- Endpoint: `{your_domain}/api/clerk-users-webhook`
-- Events: `user.created`, `user.updated`, `user.deleted`, `paymentAttempt.updated`
+### Buyer/Seller Routes (Session-based)
+```typescript
+const session = await verifyBuyerSession(sessionCode);
+if (!session) redirect('/');
+```
 
-### Real-time Data Flow
-1. UI components use Convex hooks (`useQuery`, `useMutation`)
-2. Convex provides automatic real-time updates
-3. Authentication context from `useAuth()` (Clerk)
-4. User data synced between Clerk and Convex
+## Project Structure
 
-## Shadcn Component Installation Rules
-When installing shadcn/ui components:
-- ALWAYS use `bunx --bun shadcn@latest add [component-name]` instead of `npx`
-- If dependency installation fails, manually install with `bun install [dependency-name]`
-- Check components.json for existing configuration before installing
-- Verify package.json after installation to ensure dependencies were added
-- Multiple components can be installed at once: `bunx --bun shadcn@latest add button card drawer`
+```
+/
+├── AGENTS.md                    # START HERE
+├── app/                         # Next.js routes
+│   ├── AGENTS.md               # Routing guide
+│   ├── buyer/[sessionCode]/    # Buyer portal
+│   ├── seller/[sessionCode]/   # Seller portal
+│   └── dashboard/              # Agent dashboard
+├── convex/                      # Backend
+│   ├── AGENTS.md               # Backend guide
+│   └── *.ts                    # Functions & schema
+├── components/                  # React components
+│   ├── AGENTS.md               # Component guide
+│   └── */                      # Feature components
+├── lib/                         # Utilities
+│   ├── AGENTS.md               # Utils guide
+│   ├── openrouter/             # AI service
+│   └── integrations/           # External APIs
+└── plan/                        # Implementation plan
+    ├── AGENTS.md               # Plan guide
+    └── phase-*/                # Task files
