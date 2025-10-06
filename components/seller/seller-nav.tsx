@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Home, BarChart3, FileText, Settings, MessageSquare, Sparkles } from "lucide-react";
+import { Home, BarChart3, FileText, Settings, MessageSquare, Sparkles, CalendarCheck } from "lucide-react";
 import ContactAgentButton from './contact-agent-button';
 
 interface SellerNavProps {
@@ -19,6 +19,11 @@ export default function SellerNav({ session }: SellerNavProps) {
       href: `/seller/${sessionCode}/offers`,
       icon: FileText,
       label: "Offers",
+    },
+    {
+      href: `/seller/${sessionCode}/open-houses`,
+      icon: CalendarCheck,
+      label: "Open Houses",
     },
     {
       href: `/seller/${sessionCode}/messages`,

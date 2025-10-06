@@ -119,28 +119,52 @@ export const generateMarketing = action({
       throw new Error("Listing not found");
     }
     
-    // In a real implementation, this would call OpenRouter API
-    // For now, return mock data structure
-    // TODO: Integrate with lib/openrouter/marketing-generator.ts
-    
-    const generatedContent = {
-      listingDescription: `Welcome to this stunning ${listing.bedrooms}-bedroom, ${listing.bathrooms}-bathroom ${listing.propertyType} located in the heart of ${listing.city}. This beautiful home offers ${listing.sqft} square feet of living space, featuring ${listing.features.slice(0, 3).join(', ')}. Priced at ${listing.price.toLocaleString()}, this property won't last long!`,
-      socialMediaPosts: {
-        facebook: `🏡 NEW LISTING ALERT! 🏡\n\nCheck out this gorgeous ${listing.bedrooms}BD/${listing.bathrooms}BA home in ${listing.city}! ${listing.features[0]} and more. ${listing.price.toLocaleString()} - Don't miss out!\n\n#RealEstate #HomeForSale #${listing.city.replace(/\s+/g, '')}`,
-        instagram: `✨ Just Listed ✨\n\n${listing.bedrooms}🛏️ ${listing.bathrooms}🛁 | ${listing.sqft.toLocaleString()} sqft\n📍 ${listing.city}, ${listing.state}\n💰 $${listing.price.toLocaleString()}\n\n${listing.features[0]} 🌟\nDM for details!\n\n#NewListing #DreamHome #${listing.city}Homes`,
-        twitter: `🏠 NEW: ${listing.bedrooms}BD/${listing.bathrooms}BA in ${listing.city} - $${listing.price.toLocaleString()}. ${listing.features[0]}. Contact me for details! #RealEstate`,
-      },
-      emailTemplate: `Subject: NEW LISTING: ${listing.address}\n\nHi there,\n\nI'm excited to share this incredible new listing with you!\n\n${listing.address}\n${listing.city}, ${listing.state}\n\n${listing.bedrooms} Bedrooms | ${listing.bathrooms} Bathrooms | ${listing.sqft.toLocaleString()} sqft\n$${listing.price.toLocaleString()}\n\nThis beautiful home features:\n${listing.features.slice(0, 5).map((f: string) => `- ${f}`).join('\n')}\n\nInterested in scheduling a showing? Reply to this email or give me a call!\n\nBest regards,\nYour Real Estate Agent`,
-      hashtags: [
-        'RealEstate',
-        'HomeForSale',
-        'HouseHunting',
-        listing.city.replace(/\s+/g, ''),
-        listing.state,
-        listing.propertyType.replace('-', ''),
-      ],
-    };
-    
-    return generatedContent;
+    // Use the AI marketing generator
+    // Note: This requires OPENROUTER_API_KEY to be set in environment
+    try {
+      // Dynamic import to avoid bundling issues
+      const { marketingGenerator } = await import('../lib/openrouter/marketing-generator');
+      
+      const generatedContent = await marketingGenerator.generateFullMarketing({
+        address: listing.address,
+        city: listing.city,
+        state: listing.state,
+        zipCode: listing.zipCode,
+        price: listing.price,
+        bedrooms: listing.bedrooms,
+        bathrooms: listing.bathrooms,
+        sqft: listing.sqft,
+        lotSize: listing.lotSize,
+        yearBuilt: listing.yearBuilt,
+        propertyType: listing.propertyType,
+        description: listing.description,
+        features: listing.features,
+      });
+      
+      return generatedContent;
+    } catch (error: any) {
+      console.error('AI marketing generation failed, using fallback:', error.message);
+      
+      // Fallback to template-based generation if API fails or is not configured
+      const generatedContent = {
+        listingDescription: `Welcome to this stunning ${listing.bedrooms}-bedroom, ${listing.bathrooms}-bathroom ${listing.propertyType} located in the heart of ${listing.city}. This beautiful home offers ${listing.sqft.toLocaleString()} square feet of living space, featuring ${listing.features.slice(0, 3).join(', ')}. Priced at $${listing.price.toLocaleString()}, this property won't last long!`,
+        socialMediaPosts: {
+          facebook: `🏡 NEW LISTING ALERT! 🏡\n\nCheck out this gorgeous ${listing.bedrooms}BD/${listing.bathrooms}BA home in ${listing.city}! ${listing.features[0]} and more. $${listing.price.toLocaleString()} - Don't miss out!\n\n#RealEstate #HomeForSale #${listing.city.replace(/\s+/g, '')}`,
+          instagram: `✨ Just Listed ✨\n\n${listing.bedrooms}🛏️ ${listing.bathrooms}🛁 | ${listing.sqft.toLocaleString()} sqft\n📍 ${listing.city}, ${listing.state}\n💰 $${listing.price.toLocaleString()}\n\n${listing.features[0]} 🌟\nDM for details!\n\n#NewListing #DreamHome #${listing.city}Homes`,
+          twitter: `🏠 NEW: ${listing.bedrooms}BD/${listing.bathrooms}BA in ${listing.city} - $${listing.price.toLocaleString()}. ${listing.features[0]}. Contact me for details! #RealEstate`,
+        },
+        emailTemplate: `Subject: NEW LISTING: ${listing.address}\n\nHi there,\n\nI'm excited to share this incredible new listing with you!\n\n${listing.address}\n${listing.city}, ${listing.state}\n\n${listing.bedrooms} Bedrooms | ${listing.bathrooms} Bathrooms | ${listing.sqft.toLocaleString()} sqft\n$${listing.price.toLocaleString()}\n\nThis beautiful home features:\n${listing.features.slice(0, 5).map((f: string) => `- ${f}`).join('\n')}\n\nInterested in scheduling a showing? Reply to this email or give me a call!\n\nBest regards,\nYour Real Estate Agent`,
+        hashtags: [
+          'RealEstate',
+          'HomeForSale',
+          'HouseHunting',
+          listing.city.replace(/\s+/g, ''),
+          listing.state,
+          listing.propertyType.replace(/-/g, ''),
+        ],
+      };
+      
+      return generatedContent;
+    }
   },
 });

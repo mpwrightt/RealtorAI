@@ -53,6 +53,11 @@ const data = {
       icon: IconMessageCircle,
     },
     {
+      title: "SMS Campaigns",
+      url: "/dashboard/sms-campaigns",
+      icon: IconMessageCircle,
+    },
+    {
       title: "My Listings",
       url: "/dashboard/listings",
       icon: IconListDetails,
@@ -71,12 +76,6 @@ const data = {
       title: "Clients",
       url: "/dashboard/clients",
       icon: IconUsers,
-    },
-    {
-      title: "Demo Mode",
-      url: "/dashboard/demo",
-      icon: IconPresentation,
-      badge: "Admin",
     },
   ],
   navSecondary: [

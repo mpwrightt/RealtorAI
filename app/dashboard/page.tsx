@@ -7,7 +7,7 @@ import ActiveSessions from "@/components/dashboard/active-sessions";
 import RecentActivity from "@/components/dashboard/recent-activity";
 import QuickActions from "@/components/dashboard/quick-actions";
 import AgentOnboardingForm from "@/components/dashboard/agent-onboarding-form";
-import CreateTestDataButton from "@/components/dashboard/create-test-data-button";
+
 import MyDeals from "@/components/dashboard/my-deals";
 import CommissionCalculator from "@/components/dashboard/commission-calculator";
 import { Card, CardContent } from "@/components/ui/card";
@@ -150,15 +150,8 @@ export default async function AgentDashboard() {
         </Card>
       </div>
 
-      {/* Quick Actions & Test Data */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <QuickActions agentId={agent._id} />
-        </div>
-        <div className="lg:col-span-1">
-          <CreateTestDataButton agentId={agent._id} />
-        </div>
-      </div>
+      {/* Quick Actions */}
+      <QuickActions agentId={agent._id} />
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

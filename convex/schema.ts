@@ -26,10 +26,33 @@ export default defineSchema({
       profileImage: v.optional(v.string()),
       active: v.boolean(),
       createdAt: v.number(),
+      // Admin & subscription fields
+      role: v.optional(v.union(
+        v.literal("agent"),
+        v.literal("admin"),
+        v.literal("support")
+      )),
+      isActive: v.optional(v.boolean()),
+      plan: v.optional(v.union(
+        v.literal("starter"),
+        v.literal("professional"),
+        v.literal("enterprise"),
+        v.literal("trial")
+      )),
+      planStartDate: v.optional(v.number()),
+      trialEndDate: v.optional(v.number()),
+      subscriptionStatus: v.optional(v.union(
+        v.literal("active"),
+        v.literal("paused"),
+        v.literal("cancelled"),
+        v.literal("trial")
+      )),
+      lastActive: v.optional(v.number()),
     })
       .index("byInviteCode", ["inviteCode"])
       .index("byUserId", ["userId"])
-      .index("byActive", ["active"]),
+      .index("byActive", ["active"])
+      .index("byRole", ["role"]),
     
     // Property Listings
     listings: defineTable({
@@ -308,4 +331,149 @@ export default defineSchema({
       .index("byStatus", ["status"])
       .index("byAgentAndStatus", ["agentId", "status"])
       .index("byAgentAndPriority", ["agentId", "priority"]),
+    
+    // Open Houses
+    openHouses: defineTable({
+      listingId: v.id("listings"),
+      agentId: v.id("agents"),
+      startTime: v.number(),
+      endTime: v.number(),
+      status: v.string(), // "scheduled", "active", "completed", "cancelled"
+      notes: v.optional(v.string()),
+      createdAt: v.number(),
+      updatedAt: v.number(),
+    })
+      .index("byListing", ["listingId"])
+      .index("byAgent", ["agentId"])
+      .index("byStatus", ["status"])
+      .index("byStartTime", ["startTime"]),
+    
+    // Open House Attendees
+    openHouseAttendees: defineTable({
+      openHouseId: v.id("openHouses"),
+      name: v.string(),
+      email: v.optional(v.string()),
+      phone: v.optional(v.string()),
+      notes: v.optional(v.string()),
+      interested: v.boolean(),
+      followUpSent: v.boolean(),
+      createdAt: v.number(),
+    })
+      .index("byOpenHouse", ["openHouseId"])
+      .index("byEmail", ["email"]),
+    
+    // Showing Feedback
+    showingFeedback: defineTable({
+      listingId: v.id("listings"),
+      agentId: v.id("agents"),
+      buyerSessionId: v.optional(v.id("buyerSessions")),
+      buyerName: v.optional(v.string()),
+      buyerEmail: v.optional(v.string()),
+      rating: v.number(), // 1-5 stars
+      feedback: v.optional(v.string()),
+      interestedInOffer: v.boolean(),
+      concerns: v.optional(v.string()),
+      createdAt: v.number(),
+    })
+      .index("byListing", ["listingId"])
+      .index("byAgent", ["agentId"])
+      .index("byBuyerSession", ["buyerSessionId"]),
+    
+    // SMS Campaigns
+    smsCampaigns: defineTable({
+      agentId: v.id("agents"),
+      name: v.string(),
+      template: v.string(), // "new_listing", "price_drop", "open_house", "custom"
+      message: v.string(),
+      listingId: v.optional(v.id("listings")),
+      recipientCount: v.number(),
+      sentCount: v.number(),
+      deliveredCount: v.number(),
+      failedCount: v.number(),
+      status: v.string(), // "draft", "sending", "sent", "failed"
+      scheduledFor: v.optional(v.number()),
+      sentAt: v.optional(v.number()),
+      createdAt: v.number(),
+      updatedAt: v.number(),
+    })
+      .index("byAgent", ["agentId"])
+      .index("byStatus", ["status"])
+      .index("byCreatedAt", ["createdAt"]),
+    
+    // SMS Recipients
+    smsRecipients: defineTable({
+      campaignId: v.id("smsCampaigns"),
+      agentId: v.id("agents"),
+      name: v.string(),
+      phone: v.string(),
+      clientType: v.optional(v.string()), // "buyer", "seller", "lead", "custom"
+      clientId: v.optional(v.string()),
+      status: v.string(), // "pending", "sent", "delivered", "failed"
+      twilioSid: v.optional(v.string()),
+      error: v.optional(v.string()),
+      sentAt: v.optional(v.number()),
+      deliveredAt: v.optional(v.number()),
+      createdAt: v.number(),
+    })
+      .index("byCampaign", ["campaignId"])
+      .index("byAgent", ["agentId"])
+      .index("byStatus", ["status"]),
+    
+    // Admin: Activity Logs
+    activityLogs: defineTable({
+      timestamp: v.number(),
+      userId: v.optional(v.string()), // Could be agentId or "system"
+      userEmail: v.optional(v.string()),
+      eventType: v.string(), // "signup", "portal_created", "payment", etc.
+      eventCategory: v.string(), // "user", "revenue", "system", etc.
+      description: v.string(),
+      metadata: v.optional(v.any()), // Additional event data
+      severity: v.optional(v.union(
+        v.literal("info"),
+        v.literal("warning"),
+        v.literal("error")
+      )),
+    })
+      .index("by_timestamp", ["timestamp"])
+      .index("by_user", ["userId"])
+      .index("by_category", ["eventCategory"]),
+    
+    // Admin: Feature Flags
+    featureFlags: defineTable({
+      key: v.string(),
+      name: v.string(),
+      description: v.string(),
+      enabled: v.boolean(),
+      category: v.string(),
+      createdAt: v.number(),
+      updatedAt: v.number(),
+      updatedBy: v.string(),
+    })
+      .index("by_key", ["key"])
+      .index("by_category", ["category"]),
+    
+    // Admin: System Metrics (cached aggregations)
+    systemMetrics: defineTable({
+      metricType: v.string(), // "daily_active_users", "portals_created", "health_check"
+      metricName: v.string(), // Specific metric name
+      value: v.number(),
+      timestamp: v.number(),
+      metadata: v.optional(v.any()),
+    })
+      .index("by_type", ["metricType"])
+      .index("by_name", ["metricName"]),
+    
+    // Admin: Revenue Tracking
+    revenueEvents: defineTable({
+      timestamp: v.number(),
+      agentId: v.id("agents"),
+      eventType: v.string(), // "subscription", "usage", "refund"
+      amount: v.number(), // In cents
+      currency: v.string(), // "USD"
+      plan: v.optional(v.string()),
+      description: v.string(),
+      metadata: v.optional(v.any()),
+    })
+      .index("by_agent", ["agentId"])
+      .index("by_timestamp", ["timestamp"]),
   });

@@ -1,17 +1,19 @@
-import { OpenRouterClient } from './client';
+import { OpenRouterClient, ChatMessage } from './client';
 
-export interface ListingData {
+export interface ListingInfo {
   address: string;
   city: string;
   state: string;
+  zipCode: string;
   price: number;
   bedrooms: number;
   bathrooms: number;
   sqft: number;
+  lotSize?: number;
+  yearBuilt?: number;
   propertyType: string;
   description: string;
   features: string[];
-  yearBuilt?: number;
 }
 
 export interface MarketingContent {
@@ -32,160 +34,248 @@ export class MarketingGenerator {
     this.client = new OpenRouterClient();
   }
 
-  async generateListingDescription(listing: ListingData): Promise<string> {
-    const prompt = `Write a compelling real estate listing description for the following property. Make it engaging, highlight key features, and appeal to potential buyers. Keep it professional but warm.
+  async generateFullMarketing(listing: ListingInfo): Promise<MarketingContent> {
+    const systemPrompt = `You are a professional real estate marketing copywriter. Generate compelling, accurate, and engaging marketing content for property listings. Focus on highlighting key features, location benefits, and value propositions. Keep tone professional yet warm. Use emojis appropriately for social media posts.`;
 
-Property Details:
-- Address: ${listing.address}, ${listing.city}, ${listing.state}
-- Price: $${listing.price.toLocaleString()}
-- ${listing.bedrooms} bedrooms, ${listing.bathrooms} bathrooms
-- ${listing.sqft.toLocaleString()} sqft
-- Property Type: ${listing.propertyType}
-${listing.yearBuilt ? `- Year Built: ${listing.yearBuilt}` : ''}
-- Features: ${listing.features.join(', ')}
+    const userPrompt = `Generate complete marketing content for this property:
 
-Current Description: ${listing.description}
-
-Generate an improved, professionally written listing description (3-4 paragraphs, 150-200 words). Focus on lifestyle benefits, not just features.`;
-
-    const response = await this.client.chat([
-      {
-        role: 'system',
-        content: 'You are a professional real estate copywriter who creates compelling property descriptions that sell homes.',
-      },
-      {
-        role: 'user',
-        content: prompt,
-      },
-    ] as any, { temperature: 0.8 });
-
-    return response.choices[0]?.message?.content || '';
-  }
-
-  async generateSocialMediaPosts(listing: ListingData): Promise<{
-    facebook: string;
-    instagram: string;
-    twitter: string;
-  }> {
-    const prompt = `Create 3 engaging social media posts for this property listing:
-
-Property: ${listing.address}, ${listing.city}, ${listing.state}
+Address: ${listing.address}
+City: ${listing.city}, ${listing.state} ${listing.zipCode}
 Price: $${listing.price.toLocaleString()}
-${listing.bedrooms} bed, ${listing.bathrooms} bath, ${listing.sqft.toLocaleString()} sqft
-Type: ${listing.propertyType}
-Key Features: ${listing.features.slice(0, 5).join(', ')}
-
-Create:
-1. FACEBOOK POST (100-150 words): Warm, detailed, community-focused
-2. INSTAGRAM CAPTION (80-100 words): Visual, lifestyle-focused, with emojis
-3. TWITTER/X POST (200-250 characters): Concise, punchy, attention-grabbing
-
-Format each clearly labeled. Include relevant real estate hashtags for each platform.`;
-
-    const response = await this.client.chat([
-      {
-        role: 'system',
-        content: 'You are a social media marketing expert for real estate. You create engaging posts that drive traffic and interest.',
-      },
-      {
-        role: 'user',
-        content: prompt,
-      },
-    ] as any, { temperature: 0.9 });
-
-    const content = response.choices[0]?.message?.content || '';
-    
-    // Parse the response to extract each platform's post
-    const facebookMatch = content.match(/FACEBOOK.*?:([\s\S]*?)(?=INSTAGRAM|$)/i);
-    const instagramMatch = content.match(/INSTAGRAM.*?:([\s\S]*?)(?=TWITTER|X POST|$)/i);
-    const twitterMatch = content.match(/(?:TWITTER|X POST).*?:([\s\S]*?)$/i);
-
-    return {
-      facebook: facebookMatch?.[1].trim() || content,
-      instagram: instagramMatch?.[1].trim() || content,
-      twitter: twitterMatch?.[1].trim() || content.substring(0, 250),
-    };
-  }
-
-  async generateEmailTemplate(listing: ListingData): Promise<string> {
-    const prompt = `Create an email template for agents to send to their client list about this new listing:
-
-Property: ${listing.address}, ${listing.city}, ${listing.state}
-Price: $${listing.price.toLocaleString()}
-${listing.bedrooms} bed, ${listing.bathrooms} bath, ${listing.sqft.toLocaleString()} sqft
+Bedrooms: ${listing.bedrooms}
+Bathrooms: ${listing.bathrooms}
+Square Feet: ${listing.sqft.toLocaleString()}
+${listing.lotSize ? `Lot Size: ${listing.lotSize.toLocaleString()} sqft` : ''}
+${listing.yearBuilt ? `Year Built: ${listing.yearBuilt}` : ''}
+Property Type: ${listing.propertyType}
 Features: ${listing.features.join(', ')}
 
-Create a professional email template with:
-- Catchy subject line
-- Engaging opening
-- Key property highlights
-- Call to action
-- Professional closing
+Generate:
+1. A professional 150-200 word listing description for MLS/website
+2. A Facebook post (150 words max, engaging, includes emojis)
+3. An Instagram post (shorter, emoji-heavy, includes call-to-action)
+4. A Twitter/X post (280 characters max)
+5. An email template for agent's client list (professional tone)
+6. 8-10 relevant hashtags for social media
 
-Format: Subject line, then email body. Keep it warm but professional.`;
+Format your response as JSON with this structure:
+{
+  "listingDescription": "...",
+  "socialMediaPosts": {
+    "facebook": "...",
+    "instagram": "...",
+    "twitter": "..."
+  },
+  "emailTemplate": "...",
+  "hashtags": ["tag1", "tag2", ...]
+}`;
 
-    const response = await this.client.chat([
-      {
-        role: 'system',
-        content: 'You are a real estate email marketing specialist who creates emails that get opened and generate leads.',
-      },
-      {
-        role: 'user',
-        content: prompt,
-      },
-    ] as any, { temperature: 0.8 });
+    const messages: ChatMessage[] = [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt },
+    ];
 
-    return response.choices[0]?.message?.content || '';
+    try {
+      const response = await this.client.chat(messages, {
+        temperature: 0.7,
+        max_tokens: 2000,
+      });
+
+      const content = response.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error('No content generated');
+      }
+
+      // Parse JSON response
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error('Failed to parse marketing content');
+      }
+
+      const marketingContent: MarketingContent = JSON.parse(jsonMatch[0]);
+      
+      // Validate response structure
+      if (!marketingContent.listingDescription || 
+          !marketingContent.socialMediaPosts || 
+          !marketingContent.emailTemplate ||
+          !marketingContent.hashtags) {
+        throw new Error('Incomplete marketing content generated');
+      }
+
+      return marketingContent;
+    } catch (error: any) {
+      console.error('Marketing generation error:', error);
+      // Fall back to template-based generation if AI fails
+      return this.generateTemplateMarketing(listing);
+    }
   }
 
-  async generateAllMarketing(listing: ListingData): Promise<MarketingContent> {
-    // Generate all content in parallel for speed
-    const [listingDescription, socialMediaPosts, emailTemplate] = await Promise.all([
-      this.generateListingDescription(listing),
-      this.generateSocialMediaPosts(listing),
-      this.generateEmailTemplate(listing),
-    ]);
+  async generateListingDescription(listing: ListingInfo): Promise<string> {
+    const systemPrompt = `You are a professional real estate copywriter. Write compelling property descriptions that highlight key features and sell the lifestyle. Keep descriptions between 150-200 words.`;
 
-    // Generate hashtags based on property
-    const hashtags = this.generateHashtags(listing);
+    const userPrompt = `Write a professional listing description for:
+${listing.bedrooms}BR/${listing.bathrooms}BA ${listing.propertyType} in ${listing.city}, ${listing.state}
+Price: $${listing.price.toLocaleString()}
+Size: ${listing.sqft.toLocaleString()} sqft
+Features: ${listing.features.join(', ')}`;
 
+    const messages: ChatMessage[] = [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt },
+    ];
+
+    try {
+      const response = await this.client.chat(messages, {
+        temperature: 0.7,
+        max_tokens: 500,
+      });
+
+      return response.choices[0]?.message?.content || this.generateTemplateDescription(listing);
+    } catch (error) {
+      return this.generateTemplateDescription(listing);
+    }
+  }
+
+  async generateSocialPost(listing: ListingInfo, platform: 'facebook' | 'instagram' | 'twitter'): Promise<string> {
+    const platformGuidelines = {
+      facebook: 'Write a 100-150 word Facebook post. Engaging, informative, includes emojis. Use 2-3 paragraphs.',
+      instagram: 'Write an Instagram post. Short, emoji-heavy, includes call-to-action. 80-100 words max.',
+      twitter: 'Write a Twitter/X post. 250 characters max. Concise, includes 1-2 emojis and key details.',
+    };
+
+    const systemPrompt = `You are a social media marketing expert for real estate. ${platformGuidelines[platform]}`;
+
+    const userPrompt = `Create a ${platform} post for:
+${listing.address}
+${listing.bedrooms}BR/${listing.bathrooms}BA | ${listing.sqft.toLocaleString()} sqft
+${listing.city}, ${listing.state} | $${listing.price.toLocaleString()}
+Features: ${listing.features.slice(0, 3).join(', ')}`;
+
+    const messages: ChatMessage[] = [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt },
+    ];
+
+    try {
+      const response = await this.client.chat(messages, {
+        temperature: 0.8,
+        max_tokens: 300,
+      });
+
+      return response.choices[0]?.message?.content || this.generateTemplateSocialPost(listing, platform);
+    } catch (error) {
+      return this.generateTemplateSocialPost(listing, platform);
+    }
+  }
+
+  // Fallback template-based generation
+  private generateTemplateMarketing(listing: ListingInfo): MarketingContent {
     return {
-      listingDescription,
-      socialMediaPosts,
-      emailTemplate,
-      hashtags,
+      listingDescription: this.generateTemplateDescription(listing),
+      socialMediaPosts: {
+        facebook: this.generateTemplateSocialPost(listing, 'facebook'),
+        instagram: this.generateTemplateSocialPost(listing, 'instagram'),
+        twitter: this.generateTemplateSocialPost(listing, 'twitter'),
+      },
+      emailTemplate: this.generateTemplateEmail(listing),
+      hashtags: this.generateHashtags(listing),
     };
   }
 
-  private generateHashtags(listing: ListingData): string[] {
-    const hashtags = [
+  private generateTemplateDescription(listing: ListingInfo): string {
+    return `Welcome to this stunning ${listing.bedrooms}-bedroom, ${listing.bathrooms}-bathroom ${listing.propertyType} located in the desirable ${listing.city} area. This beautiful home offers ${listing.sqft.toLocaleString()} square feet of well-designed living space${listing.lotSize ? ` on a ${listing.lotSize.toLocaleString()} square foot lot` : ''}. 
+
+Key features include ${listing.features.slice(0, 5).join(', ')}, making this property perfect for those seeking comfort and style. ${listing.yearBuilt ? `Built in ${listing.yearBuilt}, this home` : 'This home'} combines modern amenities with timeless appeal.
+
+Priced at $${listing.price.toLocaleString()}, this exceptional property offers incredible value in today's market. Don't miss the opportunity to make this house your home!`;
+  }
+
+  private generateTemplateSocialPost(listing: ListingInfo, platform: string): string {
+    if (platform === 'facebook') {
+      return `🏡 NEW LISTING ALERT! 🏡
+
+Just listed this gorgeous ${listing.bedrooms}BR/${listing.bathrooms}BA home in ${listing.city}! 
+
+✨ ${listing.sqft.toLocaleString()} sqft of beautiful living space
+💰 $${listing.price.toLocaleString()}
+📍 ${listing.city}, ${listing.state}
+
+Featuring ${listing.features.slice(0, 3).join(', ')} and so much more! This one won't last long.
+
+Interested? Send me a message or call to schedule your private showing today!
+
+#RealEstate #HomeForSale #${listing.city.replace(/\s+/g, '')} #NewListing #DreamHome`;
+    }
+
+    if (platform === 'instagram') {
+      return `✨ Just Listed! ✨
+
+${listing.bedrooms}🛏️ ${listing.bathrooms}🛁 | ${listing.sqft.toLocaleString()} sqft
+📍 ${listing.city}, ${listing.state}
+💰 $${listing.price.toLocaleString()}
+
+${listing.features[0]} 🌟
+${listing.features[1] || 'Perfect location'} 🏘️
+
+DM me for details or to schedule a showing! 👋
+
+#NewListing #${listing.city}Homes #RealEstate #HomeForSale #DreamHome #HouseHunting`;
+    }
+
+    // Twitter
+    return `🏠 NEW: ${listing.bedrooms}BR/${listing.bathrooms}BA in ${listing.city} - $${listing.price.toLocaleString()}. ${listing.features[0]}. DM for showing! #RealEstate #${listing.city}`;
+  }
+
+  private generateTemplateEmail(listing: ListingInfo): string {
+    return `Subject: NEW LISTING: ${listing.address}
+
+Hi there,
+
+I'm excited to share this incredible new listing with you!
+
+🏡 ${listing.address}
+${listing.city}, ${listing.state} ${listing.zipCode}
+
+${listing.bedrooms} Bedrooms | ${listing.bathrooms} Bathrooms | ${listing.sqft.toLocaleString()} sqft
+💰 $${listing.price.toLocaleString()}
+
+This beautiful ${listing.propertyType} features:
+${listing.features.slice(0, 5).map(f => `• ${f}`).join('\n')}
+
+${listing.yearBuilt ? `Built in ${listing.yearBuilt}, ` : ''}This home offers the perfect blend of comfort and style in a great ${listing.city} location.
+
+Interested in learning more or scheduling a showing? Simply reply to this email or give me a call!
+
+I'd love to show you this property before it's gone.
+
+Best regards,
+Your Real Estate Agent
+
+P.S. Properties in this price range and location don't last long – let me know if you'd like to see it soon!`;
+  }
+
+  private generateHashtags(listing: ListingInfo): string[] {
+    const base = [
       'RealEstate',
       'HomeForSale',
       'HouseHunting',
+      'NewListing',
       listing.city.replace(/\s+/g, ''),
+      `${listing.city.replace(/\s+/g, '')}Homes`,
       listing.state,
+      listing.propertyType.replace(/-/g, ''),
     ];
 
-    // Add property type specific hashtags
-    if (listing.propertyType.includes('single-family')) {
-      hashtags.push('SingleFamilyHome', 'DreamHome');
-    } else if (listing.propertyType.includes('condo')) {
-      hashtags.push('CondoLiving', 'UrbanLiving');
-    } else if (listing.propertyType.includes('townhouse')) {
-      hashtags.push('Townhouse', 'ModernLiving');
-    }
+    // Add contextual hashtags
+    if (listing.price < 300000) base.push('AffordableHomes', 'FirstTimeHomeBuyer');
+    if (listing.price > 800000) base.push('LuxuryHomes', 'LuxuryRealEstate');
+    if (listing.bedrooms >= 4) base.push('FamilyHome');
+    if (listing.features.some(f => f.toLowerCase().includes('pool'))) base.push('PoolHome');
+    if (listing.features.some(f => f.toLowerCase().includes('modern'))) base.push('ModernHome');
 
-    // Add feature-based hashtags
-    if (listing.features.some(f => f.toLowerCase().includes('pool'))) {
-      hashtags.push('PoolHome');
-    }
-    if (listing.features.some(f => f.toLowerCase().includes('garage'))) {
-      hashtags.push('GarageIncluded');
-    }
-    if (listing.features.some(f => f.toLowerCase().includes('updated'))) {
-      hashtags.push('UpdatedHome', 'MoveInReady');
-    }
-
-    return hashtags;
+    return base.slice(0, 10);
   }
 }
+
+// Singleton instance
+export const marketingGenerator = new MarketingGenerator();

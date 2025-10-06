@@ -2,11 +2,16 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { nanoid } from "nanoid";
 
-// Check if user is the demo admin
-export const isDemoAdmin = query({
-  args: { email: v.string() },
-  handler: async (ctx, args) => {
-    return args.email === "mawrigh602@gmail.com";
+// Check if demo mode is enabled via feature flag
+export const isDemoModeEnabled = query({
+  args: {},
+  handler: async (ctx) => {
+    const demoFlag = await ctx.db
+      .query("featureFlags")
+      .withIndex("by_key", (q) => q.eq("key", "demo_mode"))
+      .unique();
+    
+    return demoFlag?.enabled ?? false;
   },
 });
 
@@ -17,9 +22,14 @@ export const createDemoData = mutation({
     email: v.string(),
   },
   handler: async (ctx, args) => {
-    // Verify this is the demo admin
-    if (args.email !== "mawrigh602@gmail.com") {
-      throw new Error("Unauthorized: Demo data can only be created for demo admin");
+    // Check if demo mode is enabled
+    const demoFlag = await ctx.db
+      .query("featureFlags")
+      .withIndex("by_key", (q) => q.eq("key", "demo_mode"))
+      .unique();
+    
+    if (!demoFlag?.enabled) {
+      throw new Error("Demo mode is disabled. Enable it in admin panel first.");
     }
 
     // Find or create user
@@ -760,9 +770,14 @@ export const clearDemoData = mutation({
     email: v.string(),
   },
   handler: async (ctx, args) => {
-    // Verify this is the demo admin
-    if (args.email !== "mawrigh602@gmail.com") {
-      throw new Error("Unauthorized");
+    // Check if demo mode is enabled
+    const demoFlag = await ctx.db
+      .query("featureFlags")
+      .withIndex("by_key", (q) => q.eq("key", "demo_mode"))
+      .unique();
+    
+    if (!demoFlag?.enabled) {
+      throw new Error("Demo mode is disabled. Enable it in admin panel first.");
     }
 
     const user = await ctx.db
