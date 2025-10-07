@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { encrypt, requireEncryptionKey } from "./lib/encryption";
 
 // Get agent's integrations
 export const getIntegrations = query({
@@ -57,18 +58,19 @@ export const connectEmailProvider = mutation({
     if (!agent) {
       throw new Error("Agent not found");
     }
-    
-    // TODO: In production, encrypt apiKey before storing
-    // For now, storing as-is (should use encryption service)
-    
+
+    const previousEmail = agent.integrations?.email;
+    const encryptionKey = requireEncryptionKey();
+    const encryptedApiKey = await encrypt(args.apiKey, encryptionKey);
+
     const updatedIntegrations = {
       ...agent.integrations,
       email: {
         provider: args.provider,
-        apiKey: args.apiKey,
+        apiKey: encryptedApiKey,
         fromEmail: args.fromEmail,
-        verified: false, // Will be verified by test send
-        active: true,
+        verified: previousEmail?.verified ?? false,
+        active: previousEmail?.active ?? true,
       },
     };
     
@@ -93,18 +95,21 @@ export const connectTwilio = mutation({
     if (!agent) {
       throw new Error("Agent not found");
     }
-    
-    // TODO: In production, encrypt credentials before storing
-    
+
+    const previousSms = agent.integrations?.sms;
+    const encryptionKey = requireEncryptionKey();
+    const encryptedAccountSid = await encrypt(args.accountSid, encryptionKey);
+    const encryptedAuthToken = await encrypt(args.authToken, encryptionKey);
+
     const updatedIntegrations = {
       ...agent.integrations,
       sms: {
         provider: "twilio" as const,
-        accountSid: args.accountSid,
-        authToken: args.authToken,
+        accountSid: encryptedAccountSid,
+        authToken: encryptedAuthToken,
         phoneNumber: args.phoneNumber,
-        verified: false, // Will be verified by test send
-        active: true,
+        verified: previousSms?.verified ?? false,
+        active: previousSms?.active ?? true,
       },
     };
     
@@ -128,15 +133,19 @@ export const connectMessageBird = mutation({
     if (!agent) {
       throw new Error("Agent not found");
     }
-    
+
+    const previousSms = agent.integrations?.sms;
+    const encryptionKey = requireEncryptionKey();
+    const encryptedAccessKey = await encrypt(args.accessKey, encryptionKey);
+
     const updatedIntegrations = {
       ...agent.integrations,
       sms: {
         provider: "messagebird" as const,
-        accessKey: args.accessKey,
+        accessKey: encryptedAccessKey,
         phoneNumber: args.phoneNumber,
-        verified: false,
-        active: true,
+        verified: previousSms?.verified ?? false,
+        active: previousSms?.active ?? true,
       },
     };
     
@@ -161,16 +170,21 @@ export const connectVonage = mutation({
     if (!agent) {
       throw new Error("Agent not found");
     }
-    
+
+    const previousSms = agent.integrations?.sms;
+    const encryptionKey = requireEncryptionKey();
+    const encryptedApiKey = await encrypt(args.apiKey, encryptionKey);
+    const encryptedApiSecret = await encrypt(args.apiSecret, encryptionKey);
+
     const updatedIntegrations = {
       ...agent.integrations,
       sms: {
         provider: "vonage" as const,
-        apiKey: args.apiKey,
-        apiSecret: args.apiSecret,
+        apiKey: encryptedApiKey,
+        apiSecret: encryptedApiSecret,
         phoneNumber: args.phoneNumber,
-        verified: false,
-        active: true,
+        verified: previousSms?.verified ?? false,
+        active: previousSms?.active ?? true,
       },
     };
     
@@ -196,17 +210,22 @@ export const connectAwsSns = mutation({
     if (!agent) {
       throw new Error("Agent not found");
     }
-    
+
+    const previousSms = agent.integrations?.sms;
+    const encryptionKey = requireEncryptionKey();
+    const encryptedAccessKeyId = await encrypt(args.awsAccessKeyId, encryptionKey);
+    const encryptedSecretAccessKey = await encrypt(args.awsSecretAccessKey, encryptionKey);
+
     const updatedIntegrations = {
       ...agent.integrations,
       sms: {
         provider: "aws-sns" as const,
-        awsAccessKeyId: args.awsAccessKeyId,
-        awsSecretAccessKey: args.awsSecretAccessKey,
+        awsAccessKeyId: encryptedAccessKeyId,
+        awsSecretAccessKey: encryptedSecretAccessKey,
         awsRegion: args.awsRegion,
         phoneNumber: args.phoneNumber,
-        verified: false,
-        active: true,
+        verified: previousSms?.verified ?? false,
+        active: previousSms?.active ?? true,
       },
     };
     

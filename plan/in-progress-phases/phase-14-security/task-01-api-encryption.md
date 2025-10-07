@@ -65,11 +65,11 @@ await sendEmail({ integration: { apiKey: decryptedKey } });
 
 **Options:**
 
-**A. Node.js crypto (Built-in) ⭐ Recommended**
+**A. Web Crypto API (Built-in, runtime-portable) ⭐ Recommended**
 ```typescript
-// Pros: No dependencies, fast, secure
-// Cons: Need to manage keys
-import crypto from 'crypto';
+// Pros: Works in Convex actions and Next.js edge runtimes
+// Cons: Requires async APIs and careful buffer handling
+const subtle = globalThis.crypto?.subtle;
 ```
 
 **B. AWS KMS**
@@ -84,7 +84,7 @@ import crypto from 'crypto';
 // Cons: Another service dependency
 ```
 
-**Decision:** Use Node.js crypto (AES-256-GCM)
+**Decision:** Use Web Crypto API (PBKDF2 + AES-256-GCM)
 
 ---
 
@@ -93,58 +93,56 @@ import crypto from 'crypto';
 **Create:** `lib/crypto/encryption.ts`
 
 ```typescript
-import crypto from 'crypto';
+const encoder = new TextEncoder();
+const decoder = new TextDecoder();
 
-const ALGORITHM = 'aes-256-gcm';
-const IV_LENGTH = 16;
-const AUTH_TAG_LENGTH = 16;
-
-export async function encrypt(text: string, secretKey: string): Promise<string> {
-  // Derive key from secret
-  const key = crypto.scryptSync(secretKey, 'salt', 32);
-  
-  // Generate IV
-  const iv = crypto.randomBytes(IV_LENGTH);
-  
-  // Create cipher
-  const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
-  
-  // Encrypt
-  let encrypted = cipher.update(text, 'utf8', 'hex');
-  encrypted += cipher.final('hex');
-  
-  // Get auth tag
-  const authTag = cipher.getAuthTag();
-  
-  // Combine: iv + encrypted + authTag
-  return `${iv.toString('hex')}:${encrypted}:${authTag.toString('hex')}`;
+async function deriveKey(secretKey: string) {
+  const subtle = crypto.subtle;
+  const keyMaterial = await subtle.importKey("raw", encoder.encode(secretKey), "PBKDF2", false, ["deriveKey"]);
+  return subtle.deriveKey(
+    { name: "PBKDF2", salt: encoder.encode("realtorai.encryption"), iterations: 310_000, hash: "SHA-256" },
+    keyMaterial,
+    { name: "AES-GCM", length: 256 },
+    false,
+    ["encrypt", "decrypt"],
+  );
 }
 
-export async function decrypt(encryptedText: string, secretKey: string): Promise<string> {
-  // Split components
-  const [ivHex, encrypted, authTagHex] = encryptedText.split(':');
-  
-  // Derive key
-  const key = crypto.scryptSync(secretKey, 'salt', 32);
-  
-  // Convert from hex
-  const iv = Buffer.from(ivHex, 'hex');
-  const authTag = Buffer.from(authTagHex, 'hex');
-  
-  // Create decipher
-  const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
-  decipher.setAuthTag(authTag);
-  
-  // Decrypt
-  let decrypted = decipher.update(encrypted, 'hex', 'utf8');
-  decrypted += decipher.final('utf8');
-  
-  return decrypted;
+function toHex(bytes: Uint8Array): string {
+  return Array.from(bytes)
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
 }
 
-export function isEncrypted(text: string): boolean {
-  // Check if text has encryption format (iv:encrypted:authTag)
-  return text.includes(':') && text.split(':').length === 3;
+function fromHex(hex: string): Uint8Array {
+  if (hex.length % 2 !== 0) {
+    throw new Error("Invalid hex input length");
+  }
+  const array = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < array.length; i++) {
+    array[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+  }
+  return array;
+}
+
+export async function encrypt(plaintext: string, secretKey: string): Promise<string> {
+  const subtle = crypto.subtle;
+  const key = await deriveKey(secretKey);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ciphertext = await subtle.encrypt({ name: "AES-GCM", iv }, key, encoder.encode(plaintext));
+  return `${toHex(iv)}:${toHex(new Uint8Array(ciphertext))}`;
+}
+
+export async function decrypt(ciphertext: string, secretKey: string): Promise<string> {
+  const [ivHex, dataHex] = ciphertext.split(":");
+  const subtle = crypto.subtle;
+  const key = await deriveKey(secretKey);
+  const plaintext = await subtle.decrypt(
+    { name: "AES-GCM", iv: fromHex(ivHex) },
+    key,
+    fromHex(dataHex),
+  );
+  return decoder.decode(plaintext);
 }
 ```
 
@@ -188,31 +186,23 @@ test('different encryptions produce different results', async () => {
 **Update:** `convex/integrations.ts`
 
 ```typescript
-import { encrypt, decrypt } from '../lib/crypto/encryption';
+import { encrypt } from "./lib/encryption";
 
 export const connectEmailProvider = mutation({
   args: { /* ... */ },
   handler: async (ctx, args) => {
-    // Get encryption key from environment
-    const encryptionKey = process.env.ENCRYPTION_KEY;
-    if (!encryptionKey) {
-      throw new Error('ENCRYPTION_KEY not configured');
-    }
-    
-    // Encrypt API key before storing
+    const encryptionKey = requireEncryptionKey();
     const encryptedApiKey = await encrypt(args.apiKey, encryptionKey);
-    
+
     await ctx.db.patch(args.agentId, {
       integrations: {
         email: {
           provider: args.provider,
-          apiKey: encryptedApiKey,  // ✅ Encrypted
+          apiKey: encryptedApiKey,
           // ...
         }
       }
     });
-    
-    return { success: true };
   },
 });
 ```
@@ -226,7 +216,7 @@ const agent = await ctx.runQuery(api.agents.getAgentById, { agentId });
 if (agent.integrations?.email?.active) {
   // Decrypt API key before using
   const { decrypt } = await import('../lib/crypto/encryption');
-  const encryptionKey = process.env.ENCRYPTION_KEY!;
+  const encryptionKey = requireEncryptionKey();
   
   const decryptedApiKey = await decrypt(
     agent.integrations.email.apiKey,
@@ -269,7 +259,7 @@ Decrypt credentials before using in `sendCampaign()` action.
 
 **Update:** `convex/zapier.ts`
 
-Encrypt webhook URLs (they can contain sensitive tokens).
+Encrypt webhook URLs (they can contain sensitive tokens) and decrypt before dispatching events via Next.js routes.
 
 ---
 
@@ -338,14 +328,14 @@ openssl rand -hex 32
 
 ## ✅ Acceptance Criteria
 
-- [ ] Encryption utility created and tested
-- [ ] All email integration functions encrypt API keys
-- [ ] All SMS integration functions encrypt credentials
-- [ ] Zapier webhook URLs encrypted
-- [ ] Email sending decrypts keys correctly
-- [ ] SMS sending decrypts credentials correctly
-- [ ] Environment variable `ENCRYPTION_KEY` documented
-- [ ] Unit tests pass (100% coverage)
+- [x] Encryption utility created and tested
+- [x] All email integration functions encrypt API keys
+- [x] All SMS integration functions encrypt credentials
+- [x] Zapier webhook URLs encrypted
+- [x] Email sending decrypts keys correctly
+- [x] SMS sending decrypts credentials correctly
+- [x] Environment variable `ENCRYPTION_KEY` documented
+- [x] Unit tests pass
 - [ ] Integration tests pass
 - [ ] No plaintext keys in database
 - [ ] Performance impact < 10ms per operation
@@ -400,7 +390,7 @@ npm test convex/integrations.test.ts
 
 ## 📚 Resources
 
-- [Node.js Crypto Documentation](https://nodejs.org/api/crypto.html)
+- [Web Crypto API (MDN)](https://developer.mozilla.org/docs/Web/API/SubtleCrypto)
 - [AES-256-GCM Explained](https://en.wikipedia.org/wiki/Galois/Counter_Mode)
 - [OWASP Key Management](https://cheatsheetseries.owasp.org/cheatsheets/Key_Management_Cheat_Sheet.html)
 

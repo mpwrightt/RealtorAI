@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query, action } from "./_generated/server";
 import { api } from "./_generated/api";
+import { decryptIfNeeded, requireEncryptionKey } from "./lib/encryption";
 
 // Get all campaigns for an agent
 export const getCampaignsByAgent = query({
@@ -208,25 +209,29 @@ export const sendCampaign = action({
     
     // Check if agent has their own SMS integration
     const hasAgentSms = agent?.integrations?.sms?.active;
-    
-    // Prepare SMS integration object for multi-provider service
-    const smsIntegration = hasAgentSms ? {
-      provider: agent.integrations.sms.provider,
-      // Twilio
-      accountSid: agent.integrations.sms.accountSid,
-      authToken: agent.integrations.sms.authToken,
-      // MessageBird
-      accessKey: agent.integrations.sms.accessKey,
-      // Vonage
-      apiKey: agent.integrations.sms.apiKey,
-      apiSecret: agent.integrations.sms.apiSecret,
-      // AWS SNS
-      awsAccessKeyId: agent.integrations.sms.awsAccessKeyId,
-      awsSecretAccessKey: agent.integrations.sms.awsSecretAccessKey,
-      awsRegion: agent.integrations.sms.awsRegion,
-      // Common
-      phoneNumber: agent.integrations.sms.phoneNumber,
-    } : undefined;
+
+    const smsIntegration = hasAgentSms ? await (async () => {
+      const encryptionKey = requireEncryptionKey();
+      const smsConfig = agent.integrations.sms;
+
+      return {
+        provider: smsConfig.provider,
+        // Twilio
+        accountSid: await decryptIfNeeded(smsConfig.accountSid, encryptionKey),
+        authToken: await decryptIfNeeded(smsConfig.authToken, encryptionKey),
+        // MessageBird
+        accessKey: await decryptIfNeeded(smsConfig.accessKey, encryptionKey),
+        // Vonage
+        apiKey: await decryptIfNeeded(smsConfig.apiKey, encryptionKey),
+        apiSecret: await decryptIfNeeded(smsConfig.apiSecret, encryptionKey),
+        // AWS SNS
+        awsAccessKeyId: await decryptIfNeeded(smsConfig.awsAccessKeyId, encryptionKey),
+        awsSecretAccessKey: await decryptIfNeeded(smsConfig.awsSecretAccessKey, encryptionKey),
+        awsRegion: smsConfig.awsRegion,
+        // Common
+        phoneNumber: smsConfig.phoneNumber,
+      };
+    })() : undefined;
     
     // Check if we have any SMS configuration (agent or platform)
     const hasAnyConfig = hasAgentSms || process.env.TWILIO_ACCOUNT_SID;

@@ -1,5 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query, action } from "./_generated/server";
+import { api } from "./_generated/api";
+import { decryptIfNeeded, encrypt, requireEncryptionKey } from "./lib/encryption";
 
 // Get agent's Zapier configuration
 export const getZapierConfig = query({
@@ -26,9 +28,18 @@ export const getZapierConfig = query({
       };
     }
     
+    let maskedWebhook: string | undefined;
+    if (config.webhookUrl) {
+      const encryptionKey = requireEncryptionKey();
+      const webhookUrl = await decryptIfNeeded(config.webhookUrl, encryptionKey);
+      if (webhookUrl) {
+        maskedWebhook = `https://hooks.zapier.com/...${webhookUrl.slice(-8)}`;
+      }
+    }
+
     return {
       enabled: config.enabled,
-      webhookUrl: config.webhookUrl ? `https://hooks.zapier.com/...${config.webhookUrl.slice(-8)}` : undefined,
+      webhookUrl: maskedWebhook,
       events: config.events || [],
       lastTriggered: config.lastTriggered,
     };
@@ -49,9 +60,14 @@ export const updateZapierConfig = mutation({
       throw new Error("Agent not found");
     }
     
+    const encryptionKey = requireEncryptionKey();
+    const webhookUrl = args.webhookUrl
+      ? await encrypt(args.webhookUrl, encryptionKey)
+      : agent.zapierWebhooks?.webhookUrl;
+
     const updatedConfig = {
       enabled: args.enabled,
-      webhookUrl: args.webhookUrl,
+      webhookUrl,
       events: args.events || agent.zapierWebhooks?.events || [],
       lastTriggered: agent.zapierWebhooks?.lastTriggered,
     };
@@ -96,11 +112,20 @@ export const triggerZapierWebhook = action({
   handler: async (ctx, args): Promise<{ success: boolean; error?: string }> => {
     try {
       // Get agent's Zapier config
-      const agent: any = await ctx.runQuery((ctx as any).db.get, args.agentId);
+      const agent: any = await ctx.runQuery(api.agents.getAgentById, {
+        agentId: args.agentId,
+      });
       
       if (!agent?.zapierWebhooks?.enabled || !agent.zapierWebhooks?.webhookUrl) {
         console.log('[Zapier] Not configured for agent:', args.agentId);
         return { success: false, error: 'Zapier not configured' };
+      }
+      
+      const encryptionKey = requireEncryptionKey();
+      const webhookUrl = await decryptIfNeeded(agent.zapierWebhooks.webhookUrl, encryptionKey);
+      if (!webhookUrl) {
+        console.log('[Zapier] Webhook URL missing after decryption');
+        return { success: false, error: 'Zapier webhook missing' };
       }
       
       // Check if this event is enabled
@@ -114,18 +139,14 @@ export const triggerZapierWebhook = action({
       console.log('[Zapier] Webhooks now handled via Next.js API routes');
       
       // Zapier webhooks moved to Next.js API routes
+      void webhookUrl;
       const result = { success: true };
       
       if (result.success) {
         // Update last triggered timestamp
-        await ctx.runMutation((ctx as any).db.patch, {
-          id: args.agentId,
-          fields: {
-            zapierWebhooks: {
-              ...agent.zapierWebhooks,
-              lastTriggered: Date.now(),
-            },
-          },
+        await ctx.runMutation(api.zapier.markZapierTriggered, {
+          agentId: args.agentId,
+          lastTriggered: Date.now(),
         });
       }
       
@@ -144,14 +165,31 @@ export const triggerZapierWebhook = action({
 export const testZapierWebhook = action({
   args: {
     agentId: v.id("agents"),
-    webhookUrl: v.string(),
+    webhookUrl: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<{ success: boolean; error?: string }> => {
     try {
+      const agent = await ctx.runQuery(api.agents.getAgentById, {
+        agentId: args.agentId,
+      });
+      if (!agent?.zapierWebhooks?.enabled) {
+        return { success: false, error: "Zapier not configured" };
+      }
+
+      const encryptionKey = requireEncryptionKey();
+      const storedWebhookUrl = agent.zapierWebhooks.webhookUrl
+        ? await decryptIfNeeded(agent.zapierWebhooks.webhookUrl, encryptionKey)
+        : undefined;
+
+      const webhookUrl = args.webhookUrl ?? storedWebhookUrl;
+      if (!webhookUrl) {
+        return { success: false, error: "No webhook URL available" };
+      }
+
+      void webhookUrl;
+
       // Zapier webhooks moved to Next.js API routes  
-      const result = { success: true };
-      
-      return result;
+      return { success: true };
     } catch (error: any) {
       console.error('[Zapier] Test webhook error:', error);
       return {
@@ -159,5 +197,27 @@ export const testZapierWebhook = action({
         error: error.message || 'Failed to send test webhook',
       };
     }
+  },
+});
+
+export const markZapierTriggered = mutation({
+  args: {
+    agentId: v.id("agents"),
+    lastTriggered: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const agent = await ctx.db.get(args.agentId);
+    if (!agent?.zapierWebhooks) {
+      return { success: false };
+    }
+
+    await ctx.db.patch(args.agentId, {
+      zapierWebhooks: {
+        ...agent.zapierWebhooks,
+        lastTriggered: args.lastTriggered,
+      },
+    });
+
+    return { success: true };
   },
 });

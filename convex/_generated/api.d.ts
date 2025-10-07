@@ -35,6 +35,7 @@ import type * as integrations from "../integrations.js";
 import type * as leads from "../leads.js";
 import type * as lib_activityLogger from "../lib/activityLogger.js";
 import type * as lib_adminAuth from "../lib/adminAuth.js";
+import type * as lib_encryption from "../lib/encryption.js";
 import type * as lib_zapierTriggers from "../lib/zapierTriggers.js";
 import type * as listings from "../listings.js";
 import type * as marketing from "../marketing.js";
@@ -84,6 +85,7 @@ declare const fullApi: ApiFromModules<{
   leads: typeof leads;
   "lib/activityLogger": typeof lib_activityLogger;
   "lib/adminAuth": typeof lib_adminAuth;
+  "lib/encryption": typeof lib_encryption;
   "lib/zapierTriggers": typeof lib_zapierTriggers;
   listings: typeof listings;
   marketing: typeof marketing;

@@ -1,6 +1,36 @@
 import { v } from "convex/values";
 import { action } from "./_generated/server";
 import { api } from "./_generated/api";
+import { decryptIfNeeded, requireEncryptionKey } from "./lib/encryption";
+
+type EmailIntegration = {
+  provider: "resend" | "sendgrid" | "mailgun";
+  apiKey: string;
+  fromEmail?: string;
+};
+
+async function buildEmailIntegration(agent: any): Promise<EmailIntegration | undefined> {
+  if (!agent?.integrations?.email?.active) {
+    return undefined;
+  }
+
+  const encryptedKey = agent.integrations.email.apiKey;
+  if (!encryptedKey) {
+    return undefined;
+  }
+
+  const encryptionKey = requireEncryptionKey();
+  const apiKey = await decryptIfNeeded(encryptedKey, encryptionKey);
+  if (!apiKey) {
+    return undefined;
+  }
+
+  return {
+    provider: agent.integrations.email.provider as EmailIntegration["provider"],
+    apiKey,
+    fromEmail: agent.integrations.email.fromEmail,
+  };
+}
 
 // Send buyer session welcome email
 export const sendBuyerWelcomeEmail = action({
@@ -44,11 +74,7 @@ export const sendBuyerWelcomeEmail = action({
       const replyEmail = agent.brandingSettings?.replyEmail || agent.email;
       
       // Check if agent has custom email integration
-      const emailIntegration = agent.integrations?.email?.active ? {
-        provider: agent.integrations.email.provider as 'resend' | 'sendgrid' | 'mailgun',
-        apiKey: agent.integrations.email.apiKey,
-        fromEmail: agent.integrations.email.fromEmail,
-      } : undefined;
+      const emailIntegration = await buildEmailIntegration(agent);
       
       // Email functionality moved to Next.js API routes
       // Use /api/email/send endpoint for actual sending
@@ -106,11 +132,7 @@ export const sendSellerWelcomeEmail = action({
       const replyEmail = agent.brandingSettings?.replyEmail || agent.email;
       
       // Check if agent has custom email integration
-      const emailIntegration = agent.integrations?.email?.active ? {
-        provider: agent.integrations.email.provider as 'resend' | 'sendgrid' | 'mailgun',
-        apiKey: agent.integrations.email.apiKey,
-        fromEmail: agent.integrations.email.fromEmail,
-      } : undefined;
+      const emailIntegration = await buildEmailIntegration(agent);
       
       // Email functionality moved to Next.js API routes
       // Use /api/email/send endpoint for actual sending
@@ -186,11 +208,7 @@ export const sendNewOfferEmail = action({
       const replyEmail = agent?.brandingSettings?.replyEmail || agent?.email;
       
       // Check if agent has custom email integration
-      const emailIntegration = agent?.integrations?.email?.active ? {
-        provider: agent.integrations.email.provider as 'resend' | 'sendgrid' | 'mailgun',
-        apiKey: agent.integrations.email.apiKey,
-        fromEmail: agent.integrations.email.fromEmail,
-      } : undefined;
+      const emailIntegration = await buildEmailIntegration(agent);
       
       // Email functionality moved to Next.js API routes
       // Use /api/email/send endpoint for actual sending

@@ -59,12 +59,12 @@ export function ZapierIntegration({ agentId }: ZapierIntegrationProps) {
   };
 
   const handleTest = async () => {
-    if (!webhookUrl && !config?.webhookUrl) return;
-    
+    if (!config?.enabled) return;
+
     setIsTesting(true);
     try {
-      const testUrl = webhookUrl || config?.webhookUrl || "";
-      await testWebhook({ agentId, webhookUrl: testUrl });
+      const trimmedUrl = webhookUrl.trim();
+      await testWebhook({ agentId, webhookUrl: trimmedUrl ? trimmedUrl : undefined });
       alert("Test event sent! Check your Zapier dashboard.");
     } catch (error) {
       console.error("Failed to test webhook:", error);
