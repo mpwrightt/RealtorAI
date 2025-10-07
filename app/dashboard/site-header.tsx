@@ -5,15 +5,52 @@ import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 
 function getPageTitle(pathname: string): string {
-  // Handle exact matches first
-  switch (pathname) {
-    case "/dashboard":
-      return "Dashboard"
-    case "/dashboard/payment-gated":
-      return "Payment gated"
-    default:
-      return "Page"
+  const exactMatches: Record<string, string> = {
+    "/dashboard": "Dashboard",
+    "/dashboard/payment-gated": "Payment Gated",
+    "/dashboard/listings/new": "Add Listing",
+    "/dashboard/buyers/new": "Create Buyer Session",
+    "/dashboard/sellers/new": "Create Seller Session",
+    "/dashboard/invites": "Portal Invites",
   }
+
+  if (exactMatches[pathname]) {
+    return exactMatches[pathname]
+  }
+
+  if (pathname.startsWith("/dashboard/listings")) {
+    return "My Listings"
+  }
+
+  if (pathname.startsWith("/dashboard/buyers")) {
+    return "Buyer Sessions"
+  }
+
+  if (pathname.startsWith("/dashboard/sellers")) {
+    return "Seller Sessions"
+  }
+
+  if (pathname.startsWith("/dashboard/messages")) {
+    return "Messages"
+  }
+
+  if (pathname.startsWith("/dashboard/sms-campaigns")) {
+    return "SMS Campaigns"
+  }
+
+  if (pathname.startsWith("/dashboard/clients")) {
+    return "Client Tracker"
+  }
+
+  if (pathname.startsWith("/dashboard/settings")) {
+    return "Settings"
+  }
+
+  if (pathname.startsWith("/dashboard/help")) {
+    return "Help & Support"
+  }
+
+  return "Page"
 }
 
 export function SiteHeader() {
