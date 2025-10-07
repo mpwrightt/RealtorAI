@@ -1,7 +1,7 @@
-import { stripe } from "../lib/stripe/client";
+import { getStripeClient } from "../lib/stripe/client";
 
 async function testPayment() {
-  const paymentIntent = await stripe.paymentIntents.create({
+  const paymentIntent = await getStripeClient().paymentIntents.create({
     amount: 10000,
     currency: "usd",
     description: "Test payment intent",

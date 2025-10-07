@@ -52,14 +52,23 @@ npm install stripe @stripe/stripe-js @stripe/react-stripe-js
 ```typescript
 import Stripe from "stripe";
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error("STRIPE_SECRET_KEY is not defined");
-}
+let stripeClient: Stripe | null = null;
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  typescript: true,
-  apiVersion: process.env.STRIPE_API_VERSION as Stripe.StripeConfig["apiVersion"] | undefined,
-});
+export function getStripeClient(): Stripe {
+  if (!stripeClient) {
+    const secretKey = process.env.STRIPE_SECRET_KEY;
+    if (!secretKey) {
+      throw new Error("STRIPE_SECRET_KEY is not defined");
+    }
+
+    stripeClient = new Stripe(secretKey, {
+      typescript: true,
+      apiVersion: process.env.STRIPE_API_VERSION as Stripe.StripeConfig["apiVersion"] | undefined,
+    });
+  }
+
+  return stripeClient;
+}
 ```
 
 ---
@@ -166,34 +175,32 @@ export const createPaymentIntent = action({
     })),
   },
   handler: async (ctx, args): Promise<{ paymentIntentId: string; clientSecret: string }> => {
-    const { stripe } = await import('../lib/stripe/client');
-    
-    // Convert dollars to cents
+    const { getStripeClient } = await import('../lib/stripe/client');
+    const stripe = getStripeClient();
+
     const amountInCents = Math.round(args.amount * 100);
-    
-    // Create Stripe customer
+
     const customer = await stripe.customers.create({
       email: args.customerEmail,
       name: args.customerName,
-      metadata: {
-        agentId: args.agentId,
-      },
+      metadata: { agentId: args.agentId },
     });
-    
-    // Create payment intent
+
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amountInCents,
       currency: 'usd',
       customer: customer.id,
       description: args.description,
+      automatic_payment_methods: { enabled: true },
       metadata: {
         agentId: args.agentId,
         type: args.type,
-        ...args.metadata,
+        listingId: args.metadata?.listingId,
+        buyerSessionId: args.metadata?.buyerSessionId,
+        sellerSessionId: args.metadata?.sellerSessionId,
       },
     });
-    
-    // Store in database
+
     await ctx.runMutation((api as any).payments.createPayment, {
       agentId: args.agentId,
       customerId: customer.id,
@@ -206,7 +213,7 @@ export const createPaymentIntent = action({
       stripePaymentIntentId: paymentIntent.id,
       status: 'pending',
     });
-    
+
     return {
       paymentIntentId: paymentIntent.id,
       clientSecret: paymentIntent.client_secret!,
@@ -376,7 +383,7 @@ export async function POST(req: NextRequest) {
 import { stripe } from "../lib/stripe/client";
 
 async function testPayment() {
-  const paymentIntent = await stripe.paymentIntents.create({
+  const paymentIntent = await getStripeClient().paymentIntents.create({
     amount: 10000,
     currency: "usd",
     description: "Test payment intent",

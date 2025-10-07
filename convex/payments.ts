@@ -49,7 +49,8 @@ export const createPaymentIntent = action({
       throw new Error("Amount must be greater than zero");
     }
 
-    const { stripe } = await import("../lib/stripe/client");
+    const { getStripeClient } = await import("../lib/stripe/client");
+    const stripe = getStripeClient();
 
     const amountInCents = centsFromDollars(args.amount);
     const currency = (args.currency ?? "usd").toLowerCase();

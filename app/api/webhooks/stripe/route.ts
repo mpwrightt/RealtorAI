@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchMutation } from "convex/nextjs";
 import { api } from "@/convex/_generated/api";
-import { stripe } from "@/lib/stripe/client";
+import { getStripeClient } from "@/lib/stripe/client";
 import type Stripe from "stripe";
 
 export async function POST(req: NextRequest) {
@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
   let event: Stripe.Event;
 
   try {
-    event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+    event = getStripeClient().webhooks.constructEvent(body, signature, webhookSecret);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     console.error("Stripe webhook signature verification failed", message);

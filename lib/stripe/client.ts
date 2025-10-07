@@ -1,9 +1,19 @@
 import Stripe from "stripe";
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error("STRIPE_SECRET_KEY is not defined");
-}
+let stripeClient: Stripe | null = null;
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  typescript: true,
-});
+export function getStripeClient(): Stripe {
+  if (!stripeClient) {
+    const secretKey = process.env.STRIPE_SECRET_KEY;
+    if (!secretKey) {
+      throw new Error("STRIPE_SECRET_KEY is not defined");
+    }
+
+    stripeClient = new Stripe(secretKey, {
+      typescript: true,
+      apiVersion: process.env.STRIPE_API_VERSION as Stripe.StripeConfig["apiVersion"] | undefined,
+    });
+  }
+
+  return stripeClient;
+}
