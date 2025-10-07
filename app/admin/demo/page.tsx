@@ -104,7 +104,7 @@ export default function AdminDemoPage() {
               Demo Mode Status
             </h2>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              {demoFlag?.enabled 
+              {(demoFlag as any)?.enabled 
                 ? 'Demo mode is currently enabled. Users can generate test data.'
                 : 'Demo mode is currently disabled. Enable it to allow test data generation.'}
             </p>
@@ -114,18 +114,18 @@ export default function AdminDemoPage() {
             onClick={handleToggleDemoMode}
             disabled={!demoFlag}
             className={`px-6 py-2 rounded-lg font-medium transition-colors ${
-              demoFlag?.enabled
+              (demoFlag as any)?.enabled
                 ? 'bg-green-600 text-white hover:bg-green-700'
                 : 'bg-gray-600 text-white hover:bg-gray-700'
             }`}
           >
-            {demoFlag?.enabled ? 'Enabled' : 'Disabled'}
+            {(demoFlag as any)?.enabled ? 'Enabled' : 'Disabled'}
           </button>
         </div>
       </div>
 
       {/* Warning Message */}
-      {!demoFlag?.enabled && (
+      {!(demoFlag as any)?.enabled && (
         <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
           <div className="flex items-start gap-3">
             <IconAlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5" />
@@ -142,7 +142,7 @@ export default function AdminDemoPage() {
       )}
 
       {/* Generate Demo Data */}
-      {demoFlag?.enabled && (
+      {(demoFlag as any)?.enabled && (
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
             Generate Demo Data
