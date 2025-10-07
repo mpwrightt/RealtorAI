@@ -79,7 +79,16 @@ const data = {
     },
   ],
   navSecondary: [
-    // Optional: Can add Settings and Help pages later
+    {
+      title: "Settings",
+      url: "/dashboard/settings",
+      icon: IconSettings,
+    },
+    {
+      title: "Help & Support",
+      url: "/dashboard/help",
+      icon: IconHelp,
+    },
   ],
   documents: [
     // Removed placeholder links - not needed for real estate platform
