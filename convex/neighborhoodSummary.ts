@@ -28,32 +28,39 @@ export const generateNeighborhoodSummary = action({
       // Prepare the context for the AI
       const context = buildNeighborhoodContext(args);
       
-      const systemPrompt = `You are an expert real estate analyst specializing in neighborhood analysis. Your role is to provide detailed, insightful summaries that help buyers understand the character, lifestyle, and value proposition of a neighborhood.
+      const systemPrompt = `You are a local neighborhood expert providing honest, data-driven insights about what it's really like to live in different areas. Focus on facts, local character, and practical day-to-day living information - NOT marketing speak.
 
-CRITICAL FORMATTING REQUIREMENTS:
+CRITICAL TONE & STYLE:
+- Write like a knowledgeable local resident, not a real estate agent
+- Use specific neighborhood names, landmarks, and local details when available
+- Include actual data points from the context (walk scores, school ratings, etc.)
+- Be honest and balanced - mention both positives and considerations
+- Avoid hyperbolic language ("prime", "unique opportunity", "investment potential")
+- Focus on LIVED EXPERIENCE not sales pitch
+
+CRITICAL FORMATTING:
 - Write EXACTLY 3 paragraphs, no more, no less
-- DO NOT include any markdown formatting (no **, no ##, no ***, no bullets)
-- DO NOT include headers or titles
-- Start directly with the content
-- Use plain text with proper sentence structure
-- Each paragraph should be 3-5 sentences
+- NO markdown formatting (no **, no ##, no ***, no bullets, no special tags)
+- Start directly with content, no headers or titles
+- Each paragraph: 3-5 sentences
 - Separate paragraphs with a single blank line
 
 Content structure:
-Paragraph 1: Overall neighborhood character, location highlights, and general vibe
-Paragraph 2: Transportation, walkability, amenities, and daily life convenience  
-Paragraph 3: Lifestyle appeal, investment potential, and what makes it special
+Paragraph 1: Neighborhood character and specific location context (mention actual neighborhood names if known)
+Paragraph 2: Daily life practicalities - transit, walkability, amenities with specific data points
+Paragraph 3: Who lives here and what the lifestyle is actually like (demographics, vibe, community feel)
 
-Be specific, engaging, and use data from the context provided. Write in a professional but warm tone.`;
+Use the provided data to be specific and factual.`;
 
-      const userPrompt = `Generate a neighborhood summary for this property:
+      const userPrompt = `Write an honest neighborhood analysis for this property:
 
 Address: ${args.address}, ${args.city}, ${args.state} ${args.zipCode}
 Property Type: ${args.propertyType}
 
+Available Data:
 ${context}
 
-Remember: Write exactly 3 plain-text paragraphs with no markdown formatting. Start immediately with the first paragraph.`;
+Write 3 paragraphs describing what it's actually like to live in this specific neighborhood. Be factual, use the data provided, and write like a local resident sharing honest insights - not a sales pitch. Mention specific neighborhoods, actual walk scores, school ratings, and real amenities from the data. No markdown, no headers, just clean plain text.`;
 
       const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
@@ -86,13 +93,16 @@ Remember: Write exactly 3 plain-text paragraphs with no markdown formatting. Sta
         return generateBasicSummary(args);
       }
 
-      // Clean up any markdown formatting that might have been added
+      // Clean up any markdown formatting and artifacts that might have been added
       summary = summary
         .replace(/^#+\s+/gm, '') // Remove markdown headers
         .replace(/\*\*\*+/g, '') // Remove bold markdown
         .replace(/\*\*/g, '') // Remove bold
         .replace(/^[-*]\s+/gm, '') // Remove bullet points
         .replace(/^\d+\.\s+/gm, '') // Remove numbered lists
+        .replace(/<\s*\|\s*begin__of__sentence\s*\|\s*>/gi, '') // Remove special tokens
+        .replace(/<\s*\|\s*end__of__sentence\s*\|\s*>/gi, '') // Remove special tokens
+        .replace(/<[^>]+>/g, '') // Remove any remaining HTML/special tags
         .trim();
 
       return {
