@@ -34,8 +34,8 @@ export const sendBuyerWelcomeEmail = action({
       }
       
       // Import email functions
-      const { sendEmail } = await import('../lib/email/send');
-      const { newBuyerSessionEmail } = await import('../lib/email/templates');
+      const { sendEmail } = await import('../app/lib/email/send');
+      const { newBuyerSessionEmail } = await import('../app/lib/email/templates');
       
       const portalUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/buyer/${session.sessionCode}`;
       
@@ -111,8 +111,8 @@ export const sendSellerWelcomeEmail = action({
       }
       
       // Import email functions
-      const { sendEmail } = await import('../lib/email/send');
-      const { newSellerSessionEmail } = await import('../lib/email/templates');
+      const { sendEmail } = await import('../app/lib/email/send');
+      const { newSellerSessionEmail } = await import('../app/lib/email/templates');
       
       const portalUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/seller/${session.sessionCode}`;
       
@@ -207,8 +207,8 @@ export const sendNewOfferEmail = action({
       });
       
       // Import email functions
-      const { sendEmail } = await import('../lib/email/send');
-      const { newOfferEmail } = await import('../lib/email/templates');
+      const { sendEmail } = await import('../app/lib/email/send');
+      const { newOfferEmail } = await import('../app/lib/email/templates');
       
       const portalUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/seller/${sellerSession.sessionCode}/offers`;
       

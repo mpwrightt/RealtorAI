@@ -97,7 +97,7 @@ export const triggerZapierWebhook = action({
       }
       
       // Send to Zapier
-      const { sendToZapier } = await import('../lib/zapier/webhook');
+      const { sendToZapier } = await import('../app/lib/zapier/webhook');
       
       const result = await sendToZapier(agent.zapierWebhooks.webhookUrl, {
         event: args.event,
@@ -138,7 +138,7 @@ export const testZapierWebhook = action({
   },
   handler: async (ctx, args): Promise<{ success: boolean; error?: string }> => {
     try {
-      const { sendToZapier } = await import('../lib/zapier/webhook');
+      const { sendToZapier } = await import('../app/lib/zapier/webhook');
       
       const result = await sendToZapier(args.webhookUrl, {
         event: 'test',

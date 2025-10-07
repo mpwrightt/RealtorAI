@@ -273,7 +273,7 @@ export const sendCampaign = action({
     // Real SMS integration (multi-provider)
     try {
       // Import multi-provider SMS service
-      const { sendSms } = await import('../lib/sms/send');
+      const { sendSms } = await import('../app/lib/sms/send');
       
       let sentCount = 0;
       let deliveredCount = 0;

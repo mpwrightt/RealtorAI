@@ -123,7 +123,7 @@ export const generateMarketing = action({
     // Note: This requires OPENROUTER_API_KEY to be set in environment
     try {
       // Dynamic import to avoid bundling issues
-      const { marketingGenerator } = await import('../lib/openrouter/marketing-generator');
+      const { marketingGenerator } = await import('../app/lib/openrouter/marketing-generator');
       
       const generatedContent = await marketingGenerator.generateFullMarketing({
         address: listing.address,
