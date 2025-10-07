@@ -177,7 +177,6 @@ async function sendViaMailgun(apiKey: string, emailFrom: string, emailFromName: 
     messageId: data.id,
   };
 }
-}
 
 // Helper to validate email address
 export function isValidEmail(email: string): boolean {
