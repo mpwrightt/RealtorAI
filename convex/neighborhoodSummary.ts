@@ -136,7 +136,7 @@ Write exactly 5 sections separated by "---SECTION---" covering: property context
         .trim();
 
       // Parse the sections
-      const sections = summary.split('---SECTION---').map(s => s.trim()).filter(s => s);
+      const sections = summary.split('---SECTION---').map((s: string) => s.trim()).filter((s: string) => s);
       
       if (sections.length !== 5) {
         console.error('Expected 5 sections, got:', sections.length);
