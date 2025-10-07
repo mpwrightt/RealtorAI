@@ -31,9 +31,11 @@ import type * as demoData from "../demoData.js";
 import type * as emailNotifications from "../emailNotifications.js";
 import type * as favorites from "../favorites.js";
 import type * as http from "../http.js";
+import type * as integrations from "../integrations.js";
 import type * as leads from "../leads.js";
 import type * as lib_activityLogger from "../lib/activityLogger.js";
 import type * as lib_adminAuth from "../lib/adminAuth.js";
+import type * as lib_zapierTriggers from "../lib/zapierTriggers.js";
 import type * as listings from "../listings.js";
 import type * as marketing from "../marketing.js";
 import type * as messages from "../messages.js";
@@ -48,6 +50,7 @@ import type * as smsCampaigns from "../smsCampaigns.js";
 import type * as telemetry from "../telemetry.js";
 import type * as tours from "../tours.js";
 import type * as users from "../users.js";
+import type * as zapier from "../zapier.js";
 
 /**
  * A utility for referencing Convex functions in your app's API.
@@ -76,9 +79,11 @@ declare const fullApi: ApiFromModules<{
   emailNotifications: typeof emailNotifications;
   favorites: typeof favorites;
   http: typeof http;
+  integrations: typeof integrations;
   leads: typeof leads;
   "lib/activityLogger": typeof lib_activityLogger;
   "lib/adminAuth": typeof lib_adminAuth;
+  "lib/zapierTriggers": typeof lib_zapierTriggers;
   listings: typeof listings;
   marketing: typeof marketing;
   messages: typeof messages;
@@ -93,6 +98,7 @@ declare const fullApi: ApiFromModules<{
   telemetry: typeof telemetry;
   tours: typeof tours;
   users: typeof users;
+  zapier: typeof zapier;
 }>;
 export declare const api: FilterApi<
   typeof fullApi,

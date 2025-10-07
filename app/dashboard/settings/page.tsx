@@ -35,21 +35,22 @@ export default async function SettingsPage() {
       <Tabs defaultValue="branding" className="space-y-6">
         <TabsList>
           <TabsTrigger value="branding">Branding</TabsTrigger>
-          <TabsTrigger value="integrations">Integrations</TabsTrigger>
-          <TabsTrigger value="zapier">Zapier</TabsTrigger>
+          {/* <TabsTrigger value="integrations">Integrations</TabsTrigger> */}
+          {/* <TabsTrigger value="zapier">Zapier</TabsTrigger> */}
         </TabsList>
         
         <TabsContent value="branding">
           <BrandingSettings agentId={agent._id} />
         </TabsContent>
         
-        <TabsContent value="integrations">
+        {/* Temporarily disabled - needs API route implementation */}
+        {/* <TabsContent value="integrations">
           <IntegrationsManager agentId={agent._id} />
         </TabsContent>
         
         <TabsContent value="zapier">
           <ZapierIntegration agentId={agent._id} />
-        </TabsContent>
+        </TabsContent> */}
       </Tabs>
     </div>
   );
