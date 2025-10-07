@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
-import { OpenRouterClient } from '@/lib/openrouter/client';
-import { RealEstateAgent } from '@/lib/openrouter/real-estate-agent';
-import { executeToolCall } from '@/lib/openrouter/tool-handlers';
+import { OpenRouterClient } from '@/app/lib/openrouter/client';
+import { RealEstateAgent } from '@/app/lib/openrouter/real-estate-agent';
+import { executeToolCall } from '@/app/lib/openrouter/tool-handlers';
 import { fetchQuery } from 'convex/nextjs';
 import { api } from '@/convex/_generated/api';
 
