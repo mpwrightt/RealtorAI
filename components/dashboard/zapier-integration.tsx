@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, Zap, Check, X, Plus, Trash2, ExternalLink, TestTube } from "lucide-react";
-import { ZAPIER_EVENT_LABELS } from "@/lib/zapier/webhook";
+import { ZAPIER_EVENT_LABELS } from "@/app/lib/zapier/webhook";
 
 interface ZapierIntegrationProps {
   agentId: Id<"agents">;
