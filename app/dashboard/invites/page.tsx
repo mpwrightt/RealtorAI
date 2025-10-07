@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { fetchQuery } from "convex/nextjs";
 
 import { api } from "@/convex/_generated/api";
@@ -32,7 +33,13 @@ export default async function InvitesPage() {
     fetchQuery(api.sellerSessions.getSellerSessionsByAgent, { agentId: agent._id }),
   ]);
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? DEFAULT_APP_URL;
+  const headerList = await headers();
+  const forwardedHost = headerList.get("x-forwarded-host");
+  const host = forwardedHost ?? headerList.get("host");
+  const protocol = headerList.get("x-forwarded-proto") ?? "https";
+  const resolvedOrigin = host ? `${protocol}://${host}` : DEFAULT_APP_URL;
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? resolvedOrigin;
 
   const buyerSummaries = buyerSessions.map((session) => ({
     _id: session._id,
