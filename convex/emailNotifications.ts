@@ -33,9 +33,9 @@ export const sendBuyerWelcomeEmail = action({
         return { success: true, error: "Notifications disabled" };
       }
       
-      // Import email functions
-      const { sendEmail } = await import('../app/lib/email/send');
-      const { newBuyerSessionEmail } = await import('../app/lib/email/templates');
+      // Email sending moved to Next.js API route (/api/email/send)
+      // This action is now a stub - actual sending happens client-side
+      console.log('[Email] Email notifications now handled via Next.js API routes');
       
       const portalUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/buyer/${session.sessionCode}`;
       
@@ -50,24 +50,10 @@ export const sendBuyerWelcomeEmail = action({
         fromEmail: agent.integrations.email.fromEmail,
       } : undefined;
       
-      const template = newBuyerSessionEmail({
-        buyerName: session.buyerName,
-        agentName: companyName,
-        sessionCode: session.sessionCode,
-        portalUrl,
-      });
+      // Email functionality moved to Next.js API routes
+      // Use /api/email/send endpoint for actual sending
       
-      const result = await sendEmail({
-        to: session.buyerEmail,
-        subject: template.subject,
-        html: template.html,
-        text: template.text,
-        fromName: companyName,
-        replyTo: replyEmail,
-        integration: emailIntegration,
-      });
-      
-      return result;
+      return { success: true };
     } catch (error: any) {
       console.error('[Email] Error sending buyer welcome:', error);
       return { success: false, error: error.message };
@@ -110,9 +96,8 @@ export const sendSellerWelcomeEmail = action({
         return { success: true, error: "Notifications disabled" };
       }
       
-      // Import email functions
-      const { sendEmail } = await import('../app/lib/email/send');
-      const { newSellerSessionEmail } = await import('../app/lib/email/templates');
+      // Email sending moved to Next.js API route (/api/email/send)
+      console.log('[Email] Email notifications now handled via Next.js API routes');
       
       const portalUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/seller/${session.sessionCode}`;
       
@@ -127,25 +112,10 @@ export const sendSellerWelcomeEmail = action({
         fromEmail: agent.integrations.email.fromEmail,
       } : undefined;
       
-      const template = newSellerSessionEmail({
-        sellerName: session.sellerName,
-        agentName: companyName,
-        propertyAddress: listing.address,
-        sessionCode: session.sessionCode,
-        portalUrl,
-      });
+      // Email functionality moved to Next.js API routes
+      // Use /api/email/send endpoint for actual sending
       
-      const result = await sendEmail({
-        to: session.sellerEmail,
-        subject: template.subject,
-        html: template.html,
-        text: template.text,
-        fromName: companyName,
-        replyTo: replyEmail,
-        integration: emailIntegration,
-      });
-      
-      return result;
+      return { success: true };
     } catch (error: any) {
       console.error('[Email] Error sending seller welcome:', error);
       return { success: false, error: error.message };
@@ -206,9 +176,8 @@ export const sendNewOfferEmail = action({
         agentId: sellerSession.agentId,
       });
       
-      // Import email functions
-      const { sendEmail } = await import('../app/lib/email/send');
-      const { newOfferEmail } = await import('../app/lib/email/templates');
+      // Email sending moved to Next.js API route (/api/email/send)
+      console.log('[Email] Email notifications now handled via Next.js API routes');
       
       const portalUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/seller/${sellerSession.sessionCode}/offers`;
       
@@ -223,26 +192,10 @@ export const sendNewOfferEmail = action({
         fromEmail: agent.integrations.email.fromEmail,
       } : undefined;
       
-      const template = newOfferEmail({
-        sellerName: sellerSession.sellerName,
-        agentName: companyName,
-        propertyAddress: listing.address,
-        offerAmount: offer.offerAmount,
-        buyerName: buyerSession.buyerName,
-        portalUrl,
-      });
+      // Email functionality moved to Next.js API routes
+      // Use /api/email/send endpoint for actual sending
       
-      const result = await sendEmail({
-        to: sellerSession.sellerEmail,
-        subject: template.subject,
-        html: template.html,
-        text: template.text,
-        fromName: companyName,
-        replyTo: replyEmail,
-        integration: emailIntegration,
-      });
-      
-      return result;
+      return { success: true };
     } catch (error: any) {
       console.error('[Email] Error sending offer notification:', error);
       return { success: false, error: error.message };

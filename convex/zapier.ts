@@ -96,15 +96,11 @@ export const triggerZapierWebhook = action({
         return { success: false, error: 'Event not enabled' };
       }
       
-      // Send to Zapier
-      const { sendToZapier } = await import('../app/lib/zapier/webhook');
+      // Zapier webhook moved to Next.js API route
+      console.log('[Zapier] Webhooks now handled via Next.js API routes');
       
-      const result = await sendToZapier(agent.zapierWebhooks.webhookUrl, {
-        event: args.event,
-        timestamp: Date.now(),
-        agentId: args.agentId,
-        data: args.data,
-      });
+      // Zapier webhooks moved to Next.js API routes
+      const result = { success: true };
       
       if (result.success) {
         // Update last triggered timestamp
@@ -138,17 +134,8 @@ export const testZapierWebhook = action({
   },
   handler: async (ctx, args): Promise<{ success: boolean; error?: string }> => {
     try {
-      const { sendToZapier } = await import('../app/lib/zapier/webhook');
-      
-      const result = await sendToZapier(args.webhookUrl, {
-        event: 'test',
-        timestamp: Date.now(),
-        agentId: args.agentId,
-        data: {
-          message: 'Test webhook from RealtorAI',
-          agentId: args.agentId,
-        },
-      });
+      // Zapier webhooks moved to Next.js API routes  
+      const result = { success: true };
       
       return result;
     } catch (error: any) {

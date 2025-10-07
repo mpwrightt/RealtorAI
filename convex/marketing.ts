@@ -122,9 +122,14 @@ export const generateMarketing = action({
     // Use the AI marketing generator
     // Note: This requires OPENROUTER_API_KEY to be set in environment
     try {
-      // Dynamic import to avoid bundling issues
-      const { marketingGenerator } = await import('../app/lib/openrouter/marketing-generator');
+      // Marketing generation moved to Next.js API route
+      console.log('[Marketing] AI generation now handled via Next.js API routes');
       
+      // Marketing generation moved to Next.js API routes
+      // Use /api/marketing/generate endpoint for actual generation
+      return { success: false, error: 'Marketing generation now handled via API routes' };
+      
+      /* REMOVED - moved to Next.js API routes
       const generatedContent = await marketingGenerator.generateFullMarketing({
         address: listing.address,
         city: listing.city,
@@ -142,6 +147,7 @@ export const generateMarketing = action({
       });
       
       return generatedContent;
+      */
     } catch (error: any) {
       console.error('AI marketing generation failed, using fallback:', error.message);
       
