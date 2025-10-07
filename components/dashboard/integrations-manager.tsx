@@ -164,8 +164,12 @@ export function IntegrationsManager({ agentId }: IntegrationsManagerProps) {
     }
   };
 
-  if (!integrations) {
-    return <div>Loading integrations...</div>;
+  if (integrations === undefined) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
   }
 
   return (

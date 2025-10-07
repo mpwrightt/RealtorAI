@@ -6,11 +6,21 @@ export const getIntegrations = query({
   args: { agentId: v.id("agents") },
   handler: async (ctx, args) => {
     const agent = await ctx.db.get(args.agentId);
-    if (!agent) return null;
+    if (!agent) {
+      return {
+        email: null,
+        sms: null,
+      };
+    }
     
     // Return integrations with sensitive data masked
     const integrations = agent.integrations;
-    if (!integrations) return null;
+    if (!integrations) {
+      return {
+        email: null,
+        sms: null,
+      };
+    }
     
     return {
       email: integrations.email ? {
