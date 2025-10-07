@@ -29,9 +29,10 @@ export default function AdminDemoPage() {
   if (!isAuthorized) return null;
 
   const handleToggleDemoMode = async () => {
-    if (!demoFlag || typeof demoFlag === 'boolean' || !('_id' in demoFlag)) return;
+    if (!demoFlag || typeof demoFlag === 'boolean') return;
     try {
-      await toggleFlag({ flagId: demoFlag._id });
+      const flagId = (demoFlag as any)._id;
+      await toggleFlag({ flagId });
     } catch (error) {
       console.error('Failed to toggle demo mode:', error);
     }
