@@ -119,58 +119,179 @@ export const generateMarketing = action({
       throw new Error("Listing not found");
     }
     
-    // Use the AI marketing generator
-    // Note: This requires OPENROUTER_API_KEY to be set in environment
+    const apiKey = process.env.OPENROUTER_API_KEY;
+    
+    if (!apiKey) {
+      console.log('⚠️ OPENROUTER_API_KEY not configured, using template generation');
+      return generateFallbackContent(listing);
+    }
+    
+    // Use OpenRouter to generate marketing content
     try {
-      // Marketing generation moved to Next.js API route
-      console.log('[Marketing] AI generation now handled via Next.js API routes');
+      console.log('[Marketing] Generating AI content via OpenRouter...');
       
-      // Marketing generation moved to Next.js API routes
-      // Use /api/marketing/generate endpoint for actual generation
-      return { success: false, error: 'Marketing generation now handled via API routes' };
-      
-      /* REMOVED - moved to Next.js API routes
-      const generatedContent = await marketingGenerator.generateFullMarketing({
-        address: listing.address,
-        city: listing.city,
-        state: listing.state,
-        zipCode: listing.zipCode,
-        price: listing.price,
-        bedrooms: listing.bedrooms,
-        bathrooms: listing.bathrooms,
-        sqft: listing.sqft,
-        lotSize: listing.lotSize,
-        yearBuilt: listing.yearBuilt,
-        propertyType: listing.propertyType,
-        description: listing.description,
-        features: listing.features,
-      });
-      
-      return generatedContent;
-      */
-    } catch (error: any) {
-      console.error('AI marketing generation failed, using fallback:', error.message);
-      
-      // Fallback to template-based generation if API fails or is not configured
-      const generatedContent = {
-        listingDescription: `Welcome to this stunning ${listing.bedrooms}-bedroom, ${listing.bathrooms}-bathroom ${listing.propertyType} located in the heart of ${listing.city}. This beautiful home offers ${listing.sqft.toLocaleString()} square feet of living space, featuring ${listing.features.slice(0, 3).join(', ')}. Priced at $${listing.price.toLocaleString()}, this property won't last long!`,
-        socialMediaPosts: {
-          facebook: `🏡 NEW LISTING ALERT! 🏡\n\nCheck out this gorgeous ${listing.bedrooms}BD/${listing.bathrooms}BA home in ${listing.city}! ${listing.features[0]} and more. $${listing.price.toLocaleString()} - Don't miss out!\n\n#RealEstate #HomeForSale #${listing.city.replace(/\s+/g, '')}`,
-          instagram: `✨ Just Listed ✨\n\n${listing.bedrooms}🛏️ ${listing.bathrooms}🛁 | ${listing.sqft.toLocaleString()} sqft\n📍 ${listing.city}, ${listing.state}\n💰 $${listing.price.toLocaleString()}\n\n${listing.features[0]} 🌟\nDM for details!\n\n#NewListing #DreamHome #${listing.city}Homes`,
-          twitter: `🏠 NEW: ${listing.bedrooms}BD/${listing.bathrooms}BA in ${listing.city} - $${listing.price.toLocaleString()}. ${listing.features[0]}. Contact me for details! #RealEstate`,
+      const systemPrompt = `You are a professional real estate marketing copywriter. Generate compelling, accurate, and engaging marketing content for property listings. Focus on highlighting key features, location benefits, and value propositions. Keep tone professional yet warm. Use emojis appropriately for social media posts.`;
+
+      const userPrompt = `Generate complete marketing content for this property:
+
+Address: ${listing.address}
+City: ${listing.city}, ${listing.state} ${listing.zipCode}
+Price: $${listing.price.toLocaleString()}
+Bedrooms: ${listing.bedrooms}
+Bathrooms: ${listing.bathrooms}
+Square Feet: ${listing.sqft.toLocaleString()}
+${listing.lotSize ? `Lot Size: ${listing.lotSize.toLocaleString()} sqft` : ''}
+${listing.yearBuilt ? `Year Built: ${listing.yearBuilt}` : ''}
+Property Type: ${listing.propertyType}
+Features: ${listing.features.join(', ')}
+
+Generate:
+1. A professional 150-200 word listing description for MLS/website
+2. A Facebook post (150 words max, engaging, includes emojis)
+3. An Instagram post (shorter, emoji-heavy, includes call-to-action)
+4. A Twitter/X post (280 characters max)
+5. An email template for agent's client list (professional tone)
+6. 8-10 relevant hashtags for social media
+
+Format your response as JSON with this structure:
+{
+  "listingDescription": "...",
+  "socialMediaPosts": {
+    "facebook": "...",
+    "instagram": "...",
+    "twitter": "..."
+  },
+  "emailTemplate": "...",
+  "hashtags": ["tag1", "tag2", ...]
+}`;
+
+      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'HTTP-Referer': process.env.OPENROUTER_SITE_URL || 'http://localhost:3000',
+          'X-Title': process.env.OPENROUTER_SITE_NAME || 'Neighborhood Deal Finder',
+          'Content-Type': 'application/json',
         },
-        emailTemplate: `Subject: NEW LISTING: ${listing.address}\n\nHi there,\n\nI'm excited to share this incredible new listing with you!\n\n${listing.address}\n${listing.city}, ${listing.state}\n\n${listing.bedrooms} Bedrooms | ${listing.bathrooms} Bathrooms | ${listing.sqft.toLocaleString()} sqft\n$${listing.price.toLocaleString()}\n\nThis beautiful home features:\n${listing.features.slice(0, 5).map((f: string) => `- ${f}`).join('\n')}\n\nInterested in scheduling a showing? Reply to this email or give me a call!\n\nBest regards,\nYour Real Estate Agent`,
-        hashtags: [
-          'RealEstate',
-          'HomeForSale',
-          'HouseHunting',
-          listing.city.replace(/\s+/g, ''),
-          listing.state,
-          listing.propertyType.replace(/-/g, ''),
-        ],
-      };
+        body: JSON.stringify({
+          model: process.env.OPENROUTER_MODEL || 'anthropic/claude-3.5-sonnet',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt },
+          ],
+          temperature: 0.7,
+          max_tokens: 2000,
+        }),
+      });
+
+      if (!response.ok) {
+        console.error('OpenRouter API error:', await response.text());
+        return generateFallbackContent(listing);
+      }
+
+      const data = await response.json();
+      const content = data.choices[0]?.message?.content;
+
+      if (!content) {
+        console.error('No content in OpenRouter response');
+        return generateFallbackContent(listing);
+      }
+
+      // Parse JSON response
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        console.error('Failed to parse marketing content JSON');
+        return generateFallbackContent(listing);
+      }
+
+      const marketingContent = JSON.parse(jsonMatch[0]);
       
-      return generatedContent;
+      // Validate response structure
+      if (!marketingContent.listingDescription || 
+          !marketingContent.socialMediaPosts || 
+          !marketingContent.emailTemplate ||
+          !marketingContent.hashtags) {
+        console.error('Incomplete marketing content generated');
+        return generateFallbackContent(listing);
+      }
+
+      console.log('✅ AI marketing content generated successfully');
+      return marketingContent;
+      
+    } catch (error: any) {
+      console.error('AI marketing generation failed:', error.message);
+      return generateFallbackContent(listing);
     }
   },
 });
+
+// Helper function for fallback content generation
+function generateFallbackContent(listing: any) {
+  return {
+    listingDescription: `Welcome to this stunning ${listing.bedrooms}-bedroom, ${listing.bathrooms}-bathroom ${listing.propertyType} located in the heart of ${listing.city}. This beautiful home offers ${listing.sqft.toLocaleString()} square feet of living space${listing.lotSize ? ` on a ${listing.lotSize.toLocaleString()} square foot lot` : ''}. Featuring ${listing.features.slice(0, 5).join(', ')}, this property combines comfort with style. ${listing.yearBuilt ? `Built in ${listing.yearBuilt}, ` : ''}Priced at $${listing.price.toLocaleString()}, this exceptional property won't last long!`,
+    socialMediaPosts: {
+      facebook: `🏡 NEW LISTING ALERT! 🏡
+
+Just listed this gorgeous ${listing.bedrooms}BD/${listing.bathrooms}BA home in ${listing.city}! 
+
+✨ ${listing.sqft.toLocaleString()} sqft of beautiful living space
+💰 $${listing.price.toLocaleString()}
+📍 ${listing.city}, ${listing.state}
+
+Featuring ${listing.features.slice(0, 3).join(', ')} and so much more! This one won't last long.
+
+Interested? Send me a message or call to schedule your private showing today!
+
+#RealEstate #HomeForSale #${listing.city.replace(/\s+/g, '')} #NewListing`,
+      instagram: `✨ Just Listed! ✨
+
+${listing.bedrooms}🛏️ ${listing.bathrooms}🛁 | ${listing.sqft.toLocaleString()} sqft
+📍 ${listing.city}, ${listing.state}
+💰 $${listing.price.toLocaleString()}
+
+${listing.features[0] || 'Beautiful home'} 🌟
+${listing.features[1] || 'Great location'} 🏘️
+
+DM me for details or to schedule a showing! 👋
+
+#NewListing #${listing.city.replace(/\s+/g, '')}Homes #RealEstate #HomeForSale #DreamHome`,
+      twitter: `🏠 NEW: ${listing.bedrooms}BD/${listing.bathrooms}BA in ${listing.city} - $${listing.price.toLocaleString()}. ${listing.features[0] || 'Must see!'}. DM for showing! #RealEstate #${listing.city.replace(/\s+/g, '')}`,
+    },
+    emailTemplate: `Subject: NEW LISTING: ${listing.address}
+
+Hi there,
+
+I'm excited to share this incredible new listing with you!
+
+🏡 ${listing.address}
+${listing.city}, ${listing.state} ${listing.zipCode}
+
+${listing.bedrooms} Bedrooms | ${listing.bathrooms} Bathrooms | ${listing.sqft.toLocaleString()} sqft
+💰 $${listing.price.toLocaleString()}
+
+This beautiful ${listing.propertyType} features:
+${listing.features.slice(0, 5).map((f: string) => `• ${f}`).join('\n')}
+
+${listing.yearBuilt ? `Built in ${listing.yearBuilt}, t` : 'T'}his home offers the perfect blend of comfort and style in a desirable ${listing.city} location.
+
+Interested in learning more or scheduling a showing? Simply reply to this email or give me a call!
+
+I'd love to show you this property before it's gone.
+
+Best regards,
+Your Real Estate Agent
+
+P.S. Properties in this area don't last long – let me know if you'd like to see it soon!`,
+    hashtags: [
+      'RealEstate',
+      'HomeForSale',
+      'HouseHunting',
+      'NewListing',
+      listing.city.replace(/\s+/g, ''),
+      `${listing.city.replace(/\s+/g, '')}Homes`,
+      listing.state,
+      listing.propertyType.replace(/-/g, ''),
+      listing.price < 300000 ? 'AffordableHomes' : listing.price > 800000 ? 'LuxuryHomes' : 'FamilyHome',
+    ],
+  };
+}

@@ -118,6 +118,8 @@ export default async function PropertyDetailPage({
               address={listing.address}
               city={listing.city}
               state={listing.state}
+              zipCode={listing.zipCode}
+              propertyType={listing.propertyType}
               enrichedData={listing.enrichedData}
             />
           </div>

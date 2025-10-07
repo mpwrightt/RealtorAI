@@ -2,22 +2,63 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, School, Footprints, Store, Coffee, TrendingUp, Sparkles } from 'lucide-react';
+import { MapPin, School, Footprints, Store, Coffee, TrendingUp, Sparkles, Loader2 } from 'lucide-react';
+import { useAction } from 'convex/react';
+import { api } from '@/convex/_generated/api';
+import { useEffect, useState } from 'react';
 
 interface NeighborhoodSummaryProps {
   address: string;
   city: string;
   state: string;
+  zipCode: string;
+  propertyType: string;
   enrichedData?: {
     walkScore?: number;
     schoolRatings?: any;
     nearbyAmenities?: any[];
+    crimeStats?: any;
+    comps?: any[];
   };
 }
 
-export default function NeighborhoodSummary({ address, city, state, enrichedData }: NeighborhoodSummaryProps) {
-  // Generate AI-style summary based on available data
-  const generateSummary = () => {
+export default function NeighborhoodSummary({ address, city, state, zipCode, propertyType, enrichedData }: NeighborhoodSummaryProps) {
+  const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const generateSummary = useAction(api.neighborhoodSummary.generateNeighborhoodSummary);
+
+  useEffect(() => {
+    async function fetchSummary() {
+      try {
+        setIsLoading(true);
+        const result = await generateSummary({
+          address,
+          city,
+          state,
+          zipCode,
+          propertyType,
+          enrichedData: enrichedData ? {
+            walkScore: enrichedData.walkScore,
+            schoolRatings: enrichedData.schoolRatings,
+            nearbyAmenities: enrichedData.nearbyAmenities,
+            crimeStats: enrichedData.crimeStats,
+            comps: enrichedData.comps,
+          } : undefined,
+        });
+        setAiSummary(result.summary);
+      } catch (error) {
+        console.error('Error fetching AI summary:', error);
+        // Fallback to basic summary
+        setAiSummary(getBasicSummary());
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchSummary();
+  }, [address, city, state, zipCode, propertyType, enrichedData, generateSummary]);
+
+  const getBasicSummary = () => {
     const parts = [];
     
     // Walkability
@@ -86,9 +127,16 @@ export default function NeighborhoodSummary({ address, city, state, enrichedData
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm leading-relaxed">
-            {generateSummary()}
-          </p>
+          {isLoading ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Generating detailed neighborhood analysis...</span>
+            </div>
+          ) : (
+            <div className="text-sm leading-relaxed whitespace-pre-line">
+              {aiSummary}
+            </div>
+          )}
         </CardContent>
       </Card>
 

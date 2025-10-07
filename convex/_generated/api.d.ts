@@ -39,6 +39,7 @@ import type * as lib_zapierTriggers from "../lib/zapierTriggers.js";
 import type * as listings from "../listings.js";
 import type * as marketing from "../marketing.js";
 import type * as messages from "../messages.js";
+import type * as neighborhoodSummary from "../neighborhoodSummary.js";
 import type * as offers from "../offers.js";
 import type * as openHouses from "../openHouses.js";
 import type * as paymentAttemptTypes from "../paymentAttemptTypes.js";
@@ -87,6 +88,7 @@ declare const fullApi: ApiFromModules<{
   listings: typeof listings;
   marketing: typeof marketing;
   messages: typeof messages;
+  neighborhoodSummary: typeof neighborhoodSummary;
   offers: typeof offers;
   openHouses: typeof openHouses;
   paymentAttemptTypes: typeof paymentAttemptTypes;
