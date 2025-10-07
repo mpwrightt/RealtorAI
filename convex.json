@@ -1,0 +1,12 @@
+{
+  "node": {
+    "externalPackages": [
+      "twilio",
+      "@aws-sdk/client-sns",
+      "axios",
+      "resend",
+      "@sendgrid/mail",
+      "openai"
+    ]
+  }
+}

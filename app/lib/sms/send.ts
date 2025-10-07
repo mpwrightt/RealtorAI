@@ -81,10 +81,10 @@ async function sendViaTwilio(params: SendSmsParams) {
     return { success: false, error: 'Twilio credentials missing' };
   }
 
-  const twilio = require('twilio');
-  const client = twilio(accountSid, authToken);
-
   try {
+    const twilio = (await import('twilio')).default;
+    const client = twilio(accountSid, authToken);
+    
     const message = await client.messages.create({
       body: params.body,
       from: fromNumber,
