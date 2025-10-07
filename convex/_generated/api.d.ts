@@ -45,6 +45,7 @@ import type * as offers from "../offers.js";
 import type * as openHouses from "../openHouses.js";
 import type * as paymentAttemptTypes from "../paymentAttemptTypes.js";
 import type * as paymentAttempts from "../paymentAttempts.js";
+import type * as payments from "../payments.js";
 import type * as savedSearches from "../savedSearches.js";
 import type * as sellerSessions from "../sellerSessions.js";
 import type * as setup from "../setup.js";
@@ -95,6 +96,7 @@ declare const fullApi: ApiFromModules<{
   openHouses: typeof openHouses;
   paymentAttemptTypes: typeof paymentAttemptTypes;
   paymentAttempts: typeof paymentAttempts;
+  payments: typeof payments;
   savedSearches: typeof savedSearches;
   sellerSessions: typeof sellerSessions;
   setup: typeof setup;

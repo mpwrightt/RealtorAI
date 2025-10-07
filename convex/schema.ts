@@ -13,6 +13,65 @@ export default defineSchema({
       .index("byPaymentId", ["payment_id"])
       .index("byUserId", ["userId"])
       .index("byPayerUserId", ["payer.user_id"]),
+
+    payments: defineTable({
+      agentId: v.id("agents"),
+      customerId: v.optional(v.string()),
+      customerName: v.string(),
+      customerEmail: v.string(),
+      amount: v.number(),
+      currency: v.string(),
+      description: v.string(),
+      type: v.union(
+        v.literal("earnest_deposit"),
+        v.literal("consultation_fee"),
+        v.literal("retainer"),
+        v.literal("document_fee"),
+        v.literal("marketing_fee"),
+        v.literal("other")
+      ),
+      stripePaymentIntentId: v.optional(v.string()),
+      stripeChargeId: v.optional(v.string()),
+      stripeInvoiceId: v.optional(v.string()),
+      status: v.union(
+        v.literal("pending"),
+        v.literal("processing"),
+        v.literal("succeeded"),
+        v.literal("failed"),
+        v.literal("refunded"),
+        v.literal("canceled")
+      ),
+      listingId: v.optional(v.id("listings")),
+      buyerSessionId: v.optional(v.id("buyerSessions")),
+      sellerSessionId: v.optional(v.id("sellerSessions")),
+      notes: v.optional(v.string()),
+      createdAt: v.number(),
+      updatedAt: v.number(),
+      paidAt: v.optional(v.number()),
+      refundedAt: v.optional(v.number()),
+    })
+      .index("byAgent", ["agentId"])
+      .index("byStatus", ["status"])
+      .index("byCustomerEmail", ["customerEmail"])
+      .index("byStripePaymentIntent", ["stripePaymentIntentId"])
+      .index("byListing", ["listingId"]),
+
+    refunds: defineTable({
+      paymentId: v.id("payments"),
+      agentId: v.id("agents"),
+      amount: v.number(),
+      reason: v.string(),
+      stripeRefundId: v.string(),
+      status: v.union(
+        v.literal("pending"),
+        v.literal("succeeded"),
+        v.literal("failed")
+      ),
+      createdAt: v.number(),
+      processedAt: v.optional(v.number()),
+    })
+      .index("byPayment", ["paymentId"])
+      .index("byAgent", ["agentId"]),
     
     // Real Estate Agent Profiles
     agents: defineTable({

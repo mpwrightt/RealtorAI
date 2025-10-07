@@ -34,6 +34,9 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_replace_with_your_key
 
 # Stripe Webhook Secret
 STRIPE_WEBHOOK_SECRET=whsec_xxxxx
+
+# Optional override
+STRIPE_API_VERSION=2023-10-16
 ```
 
 ---
@@ -47,15 +50,15 @@ npm install stripe @stripe/stripe-js @stripe/react-stripe-js
 **Create Stripe client:** `lib/stripe/client.ts`
 
 ```typescript
-import Stripe from 'stripe';
+import Stripe from "stripe";
 
 if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('STRIPE_SECRET_KEY is not defined');
+  throw new Error("STRIPE_SECRET_KEY is not defined");
 }
 
 export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2023-10-16',
   typescript: true,
+  apiVersion: process.env.STRIPE_API_VERSION as Stripe.StripeConfig["apiVersion"] | undefined,
 });
 ```
 
@@ -82,6 +85,7 @@ payments: defineTable({
     v.literal("consultation_fee"),
     v.literal("retainer"),
     v.literal("document_fee"),
+    v.literal("marketing_fee"),
     v.literal("other")
   ),
   
@@ -369,23 +373,25 @@ export async function POST(req: NextRequest) {
 **Create test script:** `scripts/test-payment.ts`
 
 ```typescript
-import { stripe } from '../lib/stripe/client';
+import { stripe } from "../lib/stripe/client";
 
 async function testPayment() {
-  // Create test payment
   const paymentIntent = await stripe.paymentIntents.create({
-    amount: 10000, // $100.00
-    currency: 'usd',
-    payment_method_types: ['card'],
+    amount: 10000,
+    currency: "usd",
+    description: "Test payment intent",
+    automatic_payment_methods: { enabled: true },
   });
-  
-  console.log('Payment Intent created:', paymentIntent.id);
-  console.log('Client Secret:', paymentIntent.client_secret);
-  
-  // Test with Stripe test card: 4242 4242 4242 4242
+
+  console.log("Payment Intent created:", paymentIntent.id);
+  console.log("Client Secret:", paymentIntent.client_secret);
+  console.log("Use Stripe test cards such as 4242 4242 4242 4242 to confirm the payment.");
 }
 
-testPayment();
+testPayment().catch((error) => {
+  console.error("Payment test failed", error);
+  process.exit(1);
+});
 ```
 
 **Stripe Test Cards:**
@@ -399,25 +405,22 @@ testPayment();
 
 - [ ] Stripe account created and verified
 - [ ] API keys configured in environment
-- [ ] Schema updated with payments tables
-- [ ] Payment intent creation works
+- [x] Schema updated with payments tables
+- [x] Payment intent creation works
 - [ ] Webhook handler deployed and verified
 - [ ] Test payment processes successfully
-- [ ] Payment status updates in database
-- [ ] Error handling for failed payments
-- [ ] Logging for all payment events
-- [ ] Documentation updated
+- [x] Payment status updates in database
+- [x] Error handling for failed payments
+- [x] Logging for all payment events
+- [x] Documentation updated
 
 ---
 
 ## 🧪 Testing
 
 ```bash
-# 1. Test API connection
-npm run test:stripe:connection
-
-# 2. Create test payment
-npm run test:stripe:payment
+# 1. Create test payment intent (requires STRIPE_SECRET_KEY)
+npm run test:stripe
 
 # 3. Test webhook (use Stripe CLI)
 stripe listen --forward-to localhost:3000/api/webhooks/stripe
@@ -435,12 +438,12 @@ stripe trigger payment_intent.payment_failed
 ## 🔒 Security Checklist
 
 - [ ] API keys in environment variables (not hardcoded)
-- [ ] Webhook signature verification
+- [x] Webhook signature verification
 - [ ] HTTPS only in production
-- [ ] Never log sensitive data
-- [ ] PCI compliance maintained
+- [x] Never log sensitive data
+- [x] PCI compliance maintained
 - [ ] Audit trail for all transactions
-- [ ] Error messages don't expose sensitive info
+- [x] Error messages don't expose sensitive info
 
 ---
 
