@@ -138,6 +138,14 @@ export default defineSchema({
         comps: v.array(v.any()),
         lastEnriched: v.optional(v.number()),
       })),
+      aiNeighborhoodSummary: v.optional(v.object({
+        propertyContext: v.string(),
+        walkabilityTransit: v.string(),
+        amenitiesDining: v.string(),
+        schoolsFamily: v.string(),
+        communityLifestyle: v.string(),
+        generatedAt: v.number(),
+      })),
       createdAt: v.number(),
       updatedAt: v.number(),
     })

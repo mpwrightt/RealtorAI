@@ -1,8 +1,37 @@
-import { action } from "./_generated/server";
+import { action, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { api } from "./_generated/api";
+
+export const getNeighborhoodSummary = query({
+  args: { listingId: v.id("listings") },
+  handler: async (ctx, args) => {
+    const listing = await ctx.db.get(args.listingId);
+    return listing?.aiNeighborhoodSummary;
+  },
+});
+
+export const saveNeighborhoodSummary = mutation({
+  args: {
+    listingId: v.id("listings"),
+    summary: v.object({
+      propertyContext: v.string(),
+      walkabilityTransit: v.string(),
+      amenitiesDining: v.string(),
+      schoolsFamily: v.string(),
+      communityLifestyle: v.string(),
+      generatedAt: v.number(),
+    }),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.listingId, {
+      aiNeighborhoodSummary: args.summary,
+    });
+  },
+});
 
 export const generateNeighborhoodSummary = action({
   args: {
+    listingId: v.id("listings"),
     address: v.string(),
     city: v.string(),
     state: v.string(),
@@ -28,31 +57,32 @@ export const generateNeighborhoodSummary = action({
       // Prepare the context for the AI
       const context = buildNeighborhoodContext(args);
       
-      const systemPrompt = `You are a local neighborhood expert providing honest, data-driven insights about what it's really like to live in different areas. Focus on facts, local character, and practical day-to-day living information - NOT marketing speak.
+      const systemPrompt = `You are a local neighborhood expert providing honest, data-driven insights about neighborhoods. Write in sections focusing on different aspects of living in the area.
 
 CRITICAL TONE & STYLE:
 - Write like a knowledgeable local resident, not a real estate agent
-- Use specific neighborhood names, landmarks, and local details when available
-- Include actual data points from the context (walk scores, school ratings, etc.)
-- Be honest and balanced - mention both positives and considerations
-- Avoid hyperbolic language ("prime", "unique opportunity", "investment potential")
+- Use specific neighborhood names, landmarks, and local details
+- Include actual data points (walk scores, school ratings, specific amenities)
+- Be honest and balanced - both positives and considerations
+- Avoid hyperbolic language ("prime", "unique opportunity", "investment")
 - Focus on LIVED EXPERIENCE not sales pitch
 
 CRITICAL FORMATTING:
-- Write EXACTLY 3 paragraphs, no more, no less
-- NO markdown formatting (no **, no ##, no ***, no bullets, no special tags)
-- Start directly with content, no headers or titles
-- Each paragraph: 3-5 sentences
-- Separate paragraphs with a single blank line
+- Write EXACTLY 5 sections separated by "---SECTION---"
+- NO markdown formatting (no **, no ##, no bullets, no special tags)
+- Each section: 2-3 sentences of plain text
+- Be concise but informative
 
-Content structure:
-Paragraph 1: Neighborhood character and specific location context (mention actual neighborhood names if known)
-Paragraph 2: Daily life practicalities - transit, walkability, amenities with specific data points
-Paragraph 3: Who lives here and what the lifestyle is actually like (demographics, vibe, community feel)
+REQUIRED SECTIONS (in this order):
+1. PROPERTY CONTEXT: What makes this specific property's location special within the neighborhood
+2. WALKABILITY & TRANSIT: Walk score data, transit options, bike infrastructure, commute info
+3. AMENITIES & DINING: Specific nearby restaurants, shops, entertainment (use actual names from data)
+4. SCHOOLS & FAMILY: School ratings with names, family-friendly features, parks
+5. COMMUNITY & LIFESTYLE: Who lives here, neighborhood vibe, local character, demographic feel
 
-Use the provided data to be specific and factual.`;
+Use the provided data to be specific and factual. Each section should stand alone.`;
 
-      const userPrompt = `Write an honest neighborhood analysis for this property:
+      const userPrompt = `Write a sectioned neighborhood analysis for this property:
 
 Address: ${args.address}, ${args.city}, ${args.state} ${args.zipCode}
 Property Type: ${args.propertyType}
@@ -60,7 +90,7 @@ Property Type: ${args.propertyType}
 Available Data:
 ${context}
 
-Write 3 paragraphs describing what it's actually like to live in this specific neighborhood. Be factual, use the data provided, and write like a local resident sharing honest insights - not a sales pitch. Mention specific neighborhoods, actual walk scores, school ratings, and real amenities from the data. No markdown, no headers, just clean plain text.`;
+Write exactly 5 sections separated by "---SECTION---" covering: property context, walkability/transit, amenities/dining, schools/family, and community/lifestyle. Use actual data points, specific place names, and real scores. Each section 2-3 sentences. No markdown, just plain text facts.`;
 
       const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
@@ -93,22 +123,42 @@ Write 3 paragraphs describing what it's actually like to live in this specific n
         return generateBasicSummary(args);
       }
 
-      // Clean up any markdown formatting and artifacts that might have been added
+      // Clean up any markdown formatting and artifacts
       summary = summary
-        .replace(/^#+\s+/gm, '') // Remove markdown headers
-        .replace(/\*\*\*+/g, '') // Remove bold markdown
-        .replace(/\*\*/g, '') // Remove bold
-        .replace(/^[-*]\s+/gm, '') // Remove bullet points
-        .replace(/^\d+\.\s+/gm, '') // Remove numbered lists
-        .replace(/<\s*\|\s*begin__of__sentence\s*\|\s*>/gi, '') // Remove special tokens
-        .replace(/<\s*\|\s*end__of__sentence\s*\|\s*>/gi, '') // Remove special tokens
-        .replace(/<[^>]+>/g, '') // Remove any remaining HTML/special tags
+        .replace(/^#+\s+/gm, '')
+        .replace(/\*\*\*+/g, '')
+        .replace(/\*\*/g, '')
+        .replace(/^[-*]\s+/gm, '')
+        .replace(/^\d+\.\s+/gm, '')
+        .replace(/<\s*\|\s*begin__of__sentence\s*\|\s*>/gi, '')
+        .replace(/<\s*\|\s*end__of__sentence\s*\|\s*>/gi, '')
+        .replace(/<[^>]+>/g, '')
         .trim();
 
-      return {
-        summary,
+      // Parse the sections
+      const sections = summary.split('---SECTION---').map(s => s.trim()).filter(s => s);
+      
+      if (sections.length !== 5) {
+        console.error('Expected 5 sections, got:', sections.length);
+        return generateBasicSummary(args);
+      }
+
+      const structuredSummary = {
+        propertyContext: sections[0],
+        walkabilityTransit: sections[1],
+        amenitiesDining: sections[2],
+        schoolsFamily: sections[3],
+        communityLifestyle: sections[4],
         generatedAt: Date.now(),
       };
+
+      // Save to database
+      await ctx.runMutation(api.neighborhoodSummary.saveNeighborhoodSummary, {
+        listingId: args.listingId,
+        summary: structuredSummary,
+      });
+
+      return structuredSummary;
     } catch (error) {
       console.error('Error generating neighborhood summary:', error);
       return generateBasicSummary(args);
@@ -162,48 +212,52 @@ function buildNeighborhoodContext(args: any): string {
   return parts.length > 0 ? parts.join('\n\n') : 'Limited data available for this area.';
 }
 
-function generateBasicSummary(args: any): { summary: string; generatedAt: number } {
-  const parts: string[] = [];
-  
-  // Start with location
-  parts.push(`Located in ${args.city}, ${args.state}, this ${args.propertyType.replace('-', ' ')} offers a unique living opportunity in the area.`);
+function generateBasicSummary(args: any) {
+  const propertyContext = `Located in ${args.city}, ${args.state}, this ${args.propertyType.replace('-', ' ')} sits in a ${args.enrichedData?.walkScore >= 70 ? 'walkable' : args.enrichedData?.walkScore >= 50 ? 'moderately walkable' : 'car-dependent'} neighborhood. The property's location provides access to the area's amenities and local character.`;
 
-  // Walkability
+  let walkabilityTransit = 'Transportation information is limited for this area.';
   if (args.enrichedData?.walkScore !== undefined) {
     const score = args.enrichedData.walkScore;
     if (score >= 90) {
-      parts.push("The neighborhood boasts exceptional walkability, with daily errands easily accomplished on foot. Residents enjoy a pedestrian-friendly environment with abundant nearby amenities.");
+      walkabilityTransit = `Exceptional walkability with a Walk Score of ${score}/100. Daily errands can be accomplished on foot, with excellent pedestrian infrastructure. Public transportation and bike lanes make getting around easy.`;
     } else if (score >= 70) {
-      parts.push("This walkable neighborhood allows residents to complete most errands without a car, offering convenient access to local shops, restaurants, and services.");
+      walkabilityTransit = `Very walkable area with a Walk Score of ${score}/100. Most errands can be completed on foot, and the neighborhood is well-served by public transit. Biking is a viable option for local trips.`;
     } else if (score >= 50) {
-      parts.push("The area offers moderate walkability with several amenities within walking distance, though some errands may require a vehicle.");
+      walkabilityTransit = `Moderate walkability with a Walk Score of ${score}/100. Some amenities are within walking distance, but a car is helpful for most errands. Limited public transit options available.`;
     } else {
-      parts.push("This car-friendly location provides easy access to major roads and highways, with ample parking available for residents.");
+      walkabilityTransit = `Car-dependent location with a Walk Score of ${score}/100. Most errands require a vehicle. The area provides easy access to major roads and ample parking.`;
     }
   }
 
-  // Schools
+  let amenitiesDining = 'Local amenities data is not available.';
+  if (args.enrichedData?.nearbyAmenities?.length > 0) {
+    const count = args.enrichedData.nearbyAmenities.length;
+    const places = args.enrichedData.nearbyAmenities.slice(0, 3).map((a: any) => a.name).join(', ');
+    if (count >= 10) {
+      amenitiesDining = `The area offers ${count}+ nearby points of interest including ${places}. Residents have access to diverse dining, shopping, and entertainment options within a short distance.`;
+    } else {
+      amenitiesDining = `${count} local amenities nearby including ${places}. The neighborhood provides essential services and some dining options for residents.`;
+    }
+  }
+
+  let schoolsFamily = 'School information is not available for this area.';
   if (args.enrichedData?.schoolRatings?.elementary?.[0]) {
     const topSchool = args.enrichedData.schoolRatings.elementary[0];
     if (topSchool.rating >= 8) {
-      parts.push(`Families will appreciate the highly-rated schools in the area, including ${topSchool.name} with a ${topSchool.rating}/10 rating.`);
+      schoolsFamily = `Families benefit from highly-rated schools like ${topSchool.name} (${topSchool.rating}/10). The area is family-friendly with access to quality education and parks.`;
     } else if (topSchool.rating >= 6) {
-      parts.push(`The neighborhood is served by good schools, including ${topSchool.name}.`);
+      schoolsFamily = `The neighborhood is served by schools including ${topSchool.name} (${topSchool.rating}/10). Family-oriented amenities are available in the area.`;
     }
   }
 
-  // Amenities
-  if (args.enrichedData?.nearbyAmenities?.length > 0) {
-    const count = args.enrichedData.nearbyAmenities.length;
-    if (count >= 10) {
-      parts.push(`With ${count}+ points of interest nearby, residents enjoy abundant local amenities including dining, shopping, and entertainment options.`);
-    } else if (count >= 5) {
-      parts.push(`The location provides convenient access to ${count} local amenities, offering a good balance of suburban comfort and urban convenience.`);
-    }
-  }
+  const communityLifestyle = `${args.city} offers a mix of urban and suburban living. The neighborhood appeals to a diverse range of residents and maintains a balanced community atmosphere.`;
 
   return {
-    summary: parts.join(' '),
+    propertyContext,
+    walkabilityTransit,
+    amenitiesDining,
+    schoolsFamily,
+    communityLifestyle,
     generatedAt: Date.now(),
   };
 }

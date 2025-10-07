@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import PropertyGallery from "@/components/buyer/property-gallery";
 import PropertyDetails from "@/components/buyer/property-details";
 import NeighborhoodInsights from "@/components/buyer/neighborhood-insights";
-import NeighborhoodSummary from "@/components/buyer/neighborhood-summary";
+import NeighborhoodSummarySectioned from "@/components/buyer/neighborhood-summary-sectioned";
 import MortgageCalculator from "@/components/buyer/mortgage-calculator";
 import EnhancedChatWidget from "@/components/ag-ui/enhanced-chat-widget";
 import FavoriteButton from "@/components/buyer/favorite-button";
@@ -114,7 +114,8 @@ export default async function PropertyDetailPage({
           {/* Enhanced Neighborhood Section */}
           <div>
             <h2 className="text-2xl font-bold mb-6">Neighborhood</h2>
-            <NeighborhoodSummary 
+            <NeighborhoodSummarySectioned 
+              listingId={listingId as Id<"listings">}
               address={listing.address}
               city={listing.city}
               state={listing.state}
