@@ -339,7 +339,7 @@ export function IntegrationsManager({ agentId }: IntegrationsManagerProps) {
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">Credentials</span>
                   <span className="text-sm text-muted-foreground font-mono">
-                    {integrations.sms.accountSid || integrations.sms.accessKey || integrations.sms.apiKey || integrations.sms.awsAccessKeyId || "•".repeat(32)}
+                    {(integrations.sms as any).accountSid || (integrations.sms as any).accessKey || (integrations.sms as any).apiKey || (integrations.sms as any).awsAccessKeyId || "•".repeat(32)}
                   </span>
                 </div>
               </div>
