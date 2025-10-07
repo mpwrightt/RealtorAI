@@ -39,9 +39,20 @@ export const sendBuyerWelcomeEmail = action({
       
       const portalUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/buyer/${session.sessionCode}`;
       
+      // Use agent's branding settings or defaults
+      const companyName = agent.brandingSettings?.companyName || agent.agencyName;
+      const replyEmail = agent.brandingSettings?.replyEmail || agent.email;
+      
+      // Check if agent has custom email integration
+      const emailIntegration = agent.integrations?.email?.active ? {
+        provider: agent.integrations.email.provider as 'resend' | 'sendgrid' | 'mailgun',
+        apiKey: agent.integrations.email.apiKey,
+        fromEmail: agent.integrations.email.fromEmail,
+      } : undefined;
+      
       const template = newBuyerSessionEmail({
         buyerName: session.buyerName,
-        agentName: agent.agencyName || agent.email,
+        agentName: companyName,
         sessionCode: session.sessionCode,
         portalUrl,
       });
@@ -51,7 +62,9 @@ export const sendBuyerWelcomeEmail = action({
         subject: template.subject,
         html: template.html,
         text: template.text,
-        replyTo: agent.email,
+        fromName: companyName,
+        replyTo: replyEmail,
+        integration: emailIntegration,
       });
       
       return result;
@@ -103,9 +116,20 @@ export const sendSellerWelcomeEmail = action({
       
       const portalUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/seller/${session.sessionCode}`;
       
+      // Use agent's branding settings or defaults
+      const companyName = agent.brandingSettings?.companyName || agent.agencyName;
+      const replyEmail = agent.brandingSettings?.replyEmail || agent.email;
+      
+      // Check if agent has custom email integration
+      const emailIntegration = agent.integrations?.email?.active ? {
+        provider: agent.integrations.email.provider as 'resend' | 'sendgrid' | 'mailgun',
+        apiKey: agent.integrations.email.apiKey,
+        fromEmail: agent.integrations.email.fromEmail,
+      } : undefined;
+      
       const template = newSellerSessionEmail({
         sellerName: session.sellerName,
-        agentName: agent.agencyName || agent.email,
+        agentName: companyName,
         propertyAddress: listing.address,
         sessionCode: session.sessionCode,
         portalUrl,
@@ -116,7 +140,9 @@ export const sendSellerWelcomeEmail = action({
         subject: template.subject,
         html: template.html,
         text: template.text,
-        replyTo: agent.email,
+        fromName: companyName,
+        replyTo: replyEmail,
+        integration: emailIntegration,
       });
       
       return result;
@@ -186,9 +212,20 @@ export const sendNewOfferEmail = action({
       
       const portalUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/seller/${sellerSession.sessionCode}/offers`;
       
+      // Use agent's branding settings or defaults
+      const companyName = agent?.brandingSettings?.companyName || agent?.agencyName || "Your Agent";
+      const replyEmail = agent?.brandingSettings?.replyEmail || agent?.email;
+      
+      // Check if agent has custom email integration
+      const emailIntegration = agent?.integrations?.email?.active ? {
+        provider: agent.integrations.email.provider as 'resend' | 'sendgrid' | 'mailgun',
+        apiKey: agent.integrations.email.apiKey,
+        fromEmail: agent.integrations.email.fromEmail,
+      } : undefined;
+      
       const template = newOfferEmail({
         sellerName: sellerSession.sellerName,
-        agentName: agent?.agencyName || agent?.email || "Your Agent",
+        agentName: companyName,
         propertyAddress: listing.address,
         offerAmount: offer.offerAmount,
         buyerName: buyerSession.buyerName,
@@ -200,7 +237,9 @@ export const sendNewOfferEmail = action({
         subject: template.subject,
         html: template.html,
         text: template.text,
-        replyTo: agent?.email,
+        fromName: companyName,
+        replyTo: replyEmail,
+        integration: emailIntegration,
       });
       
       return result;

@@ -101,6 +101,39 @@ export const updateAgentProfile = mutation({
   },
 });
 
+export const updateBrandingSettings = mutation({
+  args: {
+    agentId: v.id("agents"),
+    companyName: v.optional(v.string()),
+    replyEmail: v.optional(v.string()),
+    smsPhone: v.optional(v.string()),
+    emailSignature: v.optional(v.string()),
+    website: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { agentId, ...settings } = args;
+    
+    const agent = await ctx.db.get(agentId);
+    if (!agent) {
+      throw new Error("Agent not found");
+    }
+    
+    // Merge with existing branding settings
+    const updatedBranding = {
+      ...agent.brandingSettings,
+      ...Object.fromEntries(
+        Object.entries(settings).filter(([_, v]) => v !== undefined)
+      ),
+    };
+    
+    await ctx.db.patch(agentId, {
+      brandingSettings: updatedBranding,
+    });
+
+    return { success: true };
+  },
+});
+
 export const generateInviteCode = mutation({
   args: { agentId: v.id("agents") },
   handler: async (ctx, args) => {

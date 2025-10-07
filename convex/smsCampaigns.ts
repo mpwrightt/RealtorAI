@@ -201,13 +201,38 @@ export const sendCampaign = action({
       sentAt: Date.now(),
     });
     
-    // Check if Twilio credentials are configured
-    const twilioAccountSid = process.env.TWILIO_ACCOUNT_SID;
-    const twilioAuthToken = process.env.TWILIO_AUTH_TOKEN;
-    const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
+    // Get agent details for integrations and branding
+    const agent: any = await ctx.runQuery(api.agents.getAgentById, {
+      agentId: campaign.agentId,
+    });
     
-    if (!twilioAccountSid || !twilioAuthToken || !twilioPhoneNumber) {
-      console.warn("Twilio not configured - simulating SMS send");
+    // Check if agent has their own SMS integration
+    const hasAgentSms = agent?.integrations?.sms?.active;
+    
+    // Prepare SMS integration object for multi-provider service
+    const smsIntegration = hasAgentSms ? {
+      provider: agent.integrations.sms.provider,
+      // Twilio
+      accountSid: agent.integrations.sms.accountSid,
+      authToken: agent.integrations.sms.authToken,
+      // MessageBird
+      accessKey: agent.integrations.sms.accessKey,
+      // Vonage
+      apiKey: agent.integrations.sms.apiKey,
+      apiSecret: agent.integrations.sms.apiSecret,
+      // AWS SNS
+      awsAccessKeyId: agent.integrations.sms.awsAccessKeyId,
+      awsSecretAccessKey: agent.integrations.sms.awsSecretAccessKey,
+      awsRegion: agent.integrations.sms.awsRegion,
+      // Common
+      phoneNumber: agent.integrations.sms.phoneNumber,
+    } : undefined;
+    
+    // Check if we have any SMS configuration (agent or platform)
+    const hasAnyConfig = hasAgentSms || process.env.TWILIO_ACCOUNT_SID;
+    
+    if (!hasAnyConfig) {
+      console.warn("SMS provider not configured - simulating SMS send");
       
       // Simulate sending (for demo purposes)
       let sentCount = 0;
@@ -245,10 +270,10 @@ export const sendCampaign = action({
       };
     }
     
-    // Real Twilio integration
+    // Real SMS integration (multi-provider)
     try {
-      const twilio = require('twilio');
-      const client = twilio(twilioAccountSid, twilioAuthToken);
+      // Import multi-provider SMS service
+      const { sendSms } = await import('../lib/sms/send');
       
       let sentCount = 0;
       let deliveredCount = 0;
@@ -256,31 +281,32 @@ export const sendCampaign = action({
       
       for (const recipient of campaign.recipients) {
         try {
-          // Send SMS via Twilio
-          const message = await client.messages.create({
-            body: campaign.message,
-            from: twilioPhoneNumber,
+          // Send SMS via configured provider
+          const result = await sendSms({
             to: recipient.phone,
+            body: campaign.message,
+            integration: smsIntegration,
           });
           
-          // Update recipient status
-          await ctx.runMutation(api.smsCampaigns.updateRecipientStatus, {
-            recipientId: recipient._id,
-            status: "sent",
-            twilioSid: message.sid,
-            sentAt: Date.now(),
-          });
-          
-          sentCount++;
-          
-          // Check delivery status (in real app, use webhooks)
-          if (message.status === "delivered") {
-            deliveredCount++;
+          if (result.success) {
+            // Update recipient status
             await ctx.runMutation(api.smsCampaigns.updateRecipientStatus, {
               recipientId: recipient._id,
-              status: "delivered",
-              deliveredAt: Date.now(),
+              status: "sent",
+              twilioSid: result.messageId,
+              sentAt: Date.now(),
             });
+            
+            sentCount++;
+            deliveredCount++; // Assume delivered for now (use webhooks in production)
+          } else {
+            // Mark as failed
+            await ctx.runMutation(api.smsCampaigns.updateRecipientStatus, {
+              recipientId: recipient._id,
+              status: "failed",
+              error: result.error || "Unknown error",
+            });
+            failedCount++;
           }
         } catch (error: any) {
           // Mark as failed
@@ -308,6 +334,7 @@ export const sendCampaign = action({
         delivered: deliveredCount,
         failed: failedCount,
         simulated: false,
+        provider: smsIntegration?.provider || 'platform-default',
       };
     } catch (error: any) {
       // Mark campaign as failed

@@ -26,6 +26,57 @@ export default defineSchema({
       profileImage: v.optional(v.string()),
       active: v.boolean(),
       createdAt: v.number(),
+      // Campaign branding settings
+      brandingSettings: v.optional(v.object({
+        companyName: v.optional(v.string()), // For email/SMS (defaults to agencyName)
+        replyEmail: v.optional(v.string()), // Custom reply-to (defaults to email)
+        smsPhone: v.optional(v.string()), // Custom SMS sender (requires Twilio setup)
+        emailSignature: v.optional(v.string()), // Custom email signature
+        website: v.optional(v.string()), // Company website
+      })),
+      // Zapier webhooks
+      zapierWebhooks: v.optional(v.object({
+        enabled: v.boolean(),
+        webhookUrl: v.optional(v.string()),
+        events: v.optional(v.array(v.string())), // Which events to forward
+        lastTriggered: v.optional(v.number()),
+      })),
+      // Third-party integrations (agent's own accounts)
+      integrations: v.optional(v.object({
+        // Email providers (agent can choose which to use)
+        email: v.optional(v.object({
+          provider: v.union(v.literal("resend"), v.literal("sendgrid"), v.literal("mailgun")),
+          apiKey: v.string(), // Encrypted in production
+          fromEmail: v.optional(v.string()),
+          verified: v.optional(v.boolean()),
+          active: v.boolean(),
+        })),
+        // SMS providers (agent can choose which to use)
+        sms: v.optional(v.object({
+          provider: v.union(
+            v.literal("twilio"),
+            v.literal("messagebird"),
+            v.literal("vonage"),
+            v.literal("aws-sns")
+          ),
+          // Twilio fields
+          accountSid: v.optional(v.string()),
+          authToken: v.optional(v.string()), // Encrypted in production
+          // MessageBird fields
+          accessKey: v.optional(v.string()), // Encrypted in production
+          // Vonage fields
+          apiKey: v.optional(v.string()), // Encrypted in production
+          apiSecret: v.optional(v.string()), // Encrypted in production
+          // AWS SNS fields
+          awsAccessKeyId: v.optional(v.string()), // Encrypted in production
+          awsSecretAccessKey: v.optional(v.string()), // Encrypted in production
+          awsRegion: v.optional(v.string()),
+          // Common fields
+          phoneNumber: v.string(),
+          verified: v.optional(v.boolean()),
+          active: v.boolean(),
+        })),
+      })),
       // Admin & subscription fields
       role: v.optional(v.union(
         v.literal("agent"),
