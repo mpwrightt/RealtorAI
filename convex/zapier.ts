@@ -6,11 +6,25 @@ export const getZapierConfig = query({
   args: { agentId: v.id("agents") },
   handler: async (ctx, args) => {
     const agent = await ctx.db.get(args.agentId);
-    if (!agent) return null;
+    if (!agent) {
+      return {
+        enabled: false,
+        webhookUrl: undefined,
+        events: [],
+        lastTriggered: undefined,
+      };
+    }
     
     // Return config with webhook URL masked
     const config = agent.zapierWebhooks;
-    if (!config) return null;
+    if (!config) {
+      return {
+        enabled: false,
+        webhookUrl: undefined,
+        events: [],
+        lastTriggered: undefined,
+      };
+    }
     
     return {
       enabled: config.enabled,
