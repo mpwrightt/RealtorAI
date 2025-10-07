@@ -3,8 +3,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { MapPin, School, Footprints, Store, Coffee, TrendingUp, Sparkles, Loader2 } from 'lucide-react';
-import { useAction } from 'convex/react';
-import { api } from '@/convex/_generated/api';
 import { useEffect, useState } from 'react';
 
 interface NeighborhoodSummaryProps {
@@ -25,26 +23,31 @@ interface NeighborhoodSummaryProps {
 export default function NeighborhoodSummary({ address, city, state, zipCode, propertyType, enrichedData }: NeighborhoodSummaryProps) {
   const [aiSummary, setAiSummary] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const generateSummary = useAction(api.neighborhoodSummary.generateNeighborhoodSummary);
 
   useEffect(() => {
     async function fetchSummary() {
       try {
         setIsLoading(true);
-        const result = await generateSummary({
-          address,
-          city,
-          state,
-          zipCode,
-          propertyType,
-          enrichedData: enrichedData ? {
-            walkScore: enrichedData.walkScore,
-            schoolRatings: enrichedData.schoolRatings,
-            nearbyAmenities: enrichedData.nearbyAmenities,
-            crimeStats: enrichedData.crimeStats,
-            comps: enrichedData.comps,
-          } : undefined,
+        const response = await fetch('/api/neighborhood/generate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            address,
+            city,
+            state,
+            zipCode,
+            propertyType,
+            enrichedData,
+          }),
         });
+
+        if (!response.ok) {
+          throw new Error('Failed to generate summary');
+        }
+
+        const result = await response.json();
         setAiSummary(result.summary);
       } catch (error) {
         console.error('Error fetching AI summary:', error);
@@ -56,7 +59,7 @@ export default function NeighborhoodSummary({ address, city, state, zipCode, pro
     }
 
     fetchSummary();
-  }, [address, city, state, zipCode, propertyType, enrichedData, generateSummary]);
+  }, [address, city, state, zipCode, propertyType, enrichedData]);
 
   const getBasicSummary = () => {
     const parts = [];
@@ -133,8 +136,12 @@ export default function NeighborhoodSummary({ address, city, state, zipCode, pro
               <span>Generating detailed neighborhood analysis...</span>
             </div>
           ) : (
-            <div className="text-sm leading-relaxed whitespace-pre-line">
-              {aiSummary}
+            <div className="prose prose-sm max-w-none">
+              {aiSummary?.split('\n\n').map((paragraph, index) => (
+                <p key={index} className="text-sm leading-relaxed mb-4 last:mb-0">
+                  {paragraph}
+                </p>
+              ))}
             </div>
           )}
         </CardContent>

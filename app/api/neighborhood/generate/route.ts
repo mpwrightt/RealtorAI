@@ -1,34 +1,26 @@
-import { action } from "./_generated/server";
-import { v } from "convex/values";
+import { NextRequest, NextResponse } from 'next/server';
 
-export const generateNeighborhoodSummary = action({
-  args: {
-    address: v.string(),
-    city: v.string(),
-    state: v.string(),
-    zipCode: v.string(),
-    propertyType: v.string(),
-    enrichedData: v.optional(v.object({
-      walkScore: v.optional(v.number()),
-      schoolRatings: v.optional(v.any()),
-      nearbyAmenities: v.optional(v.array(v.any())),
-      crimeStats: v.optional(v.any()),
-      comps: v.optional(v.array(v.any())),
-    })),
-  },
-  handler: async (ctx, args) => {
+export const runtime = 'nodejs';
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { address, city, state, zipCode, propertyType, enrichedData } = body;
+    
     const apiKey = process.env.OPENROUTER_API_KEY;
     
     if (!apiKey) {
-      // Fallback to basic summary if no API key
-      return generateBasicSummary(args);
+      console.log('⚠️ OPENROUTER_API_KEY not configured, using template generation');
+      return NextResponse.json({
+        summary: generateBasicSummary({ address, city, state, enrichedData }),
+        generatedAt: Date.now(),
+      });
     }
 
-    try {
-      // Prepare the context for the AI
-      const context = buildNeighborhoodContext(args);
-      
-      const systemPrompt = `You are an expert real estate analyst specializing in neighborhood analysis. Your role is to provide detailed, insightful summaries that help buyers understand the character, lifestyle, and value proposition of a neighborhood.
+    // Prepare the context for the AI
+    const context = buildNeighborhoodContext({ address, city, state, zipCode, propertyType, enrichedData });
+    
+    const systemPrompt = `You are an expert real estate analyst specializing in neighborhood analysis. Your role is to provide detailed, insightful summaries that help buyers understand the character, lifestyle, and value proposition of a neighborhood.
 
 CRITICAL FORMATTING REQUIREMENTS:
 - Write EXACTLY 3 paragraphs, no more, no less
@@ -46,65 +38,75 @@ Paragraph 3: Lifestyle appeal, investment potential, and what makes it special
 
 Be specific, engaging, and use data from the context provided. Write in a professional but warm tone.`;
 
-      const userPrompt = `Generate a neighborhood summary for this property:
+    const userPrompt = `Generate a neighborhood summary for this property:
 
-Address: ${args.address}, ${args.city}, ${args.state} ${args.zipCode}
-Property Type: ${args.propertyType}
+Address: ${address}, ${city}, ${state} ${zipCode}
+Property Type: ${propertyType}
 
 ${context}
 
 Remember: Write exactly 3 plain-text paragraphs with no markdown formatting. Start immediately with the first paragraph.`;
 
-      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'HTTP-Referer': process.env.OPENROUTER_SITE_URL || 'http://localhost:3000',
-          'X-Title': process.env.OPENROUTER_SITE_NAME || 'Neighborhood Deal Finder',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: process.env.OPENROUTER_MODEL || 'anthropic/claude-3.5-sonnet',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt },
-          ],
-          temperature: 0.7,
-          max_tokens: 1000,
-        }),
-      });
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'HTTP-Referer': process.env.OPENROUTER_SITE_URL || 'http://localhost:3000',
+        'X-Title': process.env.OPENROUTER_SITE_NAME || 'Neighborhood Deal Finder',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: process.env.OPENROUTER_MODEL || 'anthropic/claude-3.5-sonnet',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        temperature: 0.7,
+        max_tokens: 1000,
+      }),
+    });
 
-      if (!response.ok) {
-        console.error('OpenRouter API error:', await response.text());
-        return generateBasicSummary(args);
-      }
-
-      const data = await response.json();
-      let summary = data.choices[0]?.message?.content;
-
-      if (!summary) {
-        return generateBasicSummary(args);
-      }
-
-      // Clean up any markdown formatting that might have been added
-      summary = summary
-        .replace(/^#+\s+/gm, '') // Remove markdown headers
-        .replace(/\*\*\*+/g, '') // Remove bold markdown
-        .replace(/\*\*/g, '') // Remove bold
-        .replace(/^[-*]\s+/gm, '') // Remove bullet points
-        .replace(/^\d+\.\s+/gm, '') // Remove numbered lists
-        .trim();
-
-      return {
-        summary,
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('OpenRouter API error:', errorText);
+      return NextResponse.json({
+        summary: generateBasicSummary({ address, city, state, enrichedData }),
         generatedAt: Date.now(),
-      };
-    } catch (error) {
-      console.error('Error generating neighborhood summary:', error);
-      return generateBasicSummary(args);
+      });
     }
-  },
-});
+
+    const data = await response.json();
+    let summary = data.choices[0]?.message?.content;
+
+    if (!summary) {
+      return NextResponse.json({
+        summary: generateBasicSummary({ address, city, state, enrichedData }),
+        generatedAt: Date.now(),
+      });
+    }
+
+    // Clean up any markdown formatting that might have been added
+    summary = summary
+      .replace(/^#+\s+/gm, '') // Remove markdown headers
+      .replace(/\*\*\*+/g, '') // Remove bold markdown
+      .replace(/\*\*/g, '') // Remove bold
+      .replace(/^[-*]\s+/gm, '') // Remove bullet points
+      .replace(/^\d+\.\s+/gm, '') // Remove numbered lists
+      .trim();
+
+    return NextResponse.json({
+      summary,
+      generatedAt: Date.now(),
+    });
+
+  } catch (error: any) {
+    console.error('Error generating neighborhood summary:', error);
+    return NextResponse.json(
+      { error: error.message || 'Failed to generate summary' },
+      { status: 500 }
+    );
+  }
+}
 
 function buildNeighborhoodContext(args: any): string {
   const parts: string[] = [];
@@ -152,11 +154,11 @@ function buildNeighborhoodContext(args: any): string {
   return parts.length > 0 ? parts.join('\n\n') : 'Limited data available for this area.';
 }
 
-function generateBasicSummary(args: any): { summary: string; generatedAt: number } {
+function generateBasicSummary(args: any): string {
   const parts: string[] = [];
   
   // Start with location
-  parts.push(`Located in ${args.city}, ${args.state}, this ${args.propertyType.replace('-', ' ')} offers a unique living opportunity in the area.`);
+  parts.push(`Located in ${args.city}, ${args.state}, this property offers a unique living opportunity in the area.`);
 
   // Walkability
   if (args.enrichedData?.walkScore !== undefined) {
@@ -192,8 +194,5 @@ function generateBasicSummary(args: any): { summary: string; generatedAt: number
     }
   }
 
-  return {
-    summary: parts.join(' '),
-    generatedAt: Date.now(),
-  };
+  return parts.join(' ');
 }
