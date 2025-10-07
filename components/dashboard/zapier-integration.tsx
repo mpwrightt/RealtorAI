@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,7 @@ export function ZapierIntegration({ agentId }: ZapierIntegrationProps) {
   const config = useQuery(api.zapier.getZapierConfig, { agentId });
   const updateConfig = useMutation(api.zapier.updateZapierConfig);
   const disconnect = useMutation(api.zapier.disconnectZapier);
-  const testWebhook = useMutation(api.zapier.testZapierWebhook);
+  const testWebhook = useAction(api.zapier.testZapierWebhook);
   
   const [showForm, setShowForm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
