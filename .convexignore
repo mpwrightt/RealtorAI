@@ -1,0 +1,14 @@
+# Ignore app folder - contains Next.js-specific code
+app/
+
+# Ignore node_modules
+node_modules/
+
+# Ignore build outputs
+.next/
+out/
+dist/
+
+# Ignore docs
+docs/
+plan/
