@@ -29,7 +29,7 @@ export default function AdminDemoPage() {
   if (!isAuthorized) return null;
 
   const handleToggleDemoMode = async () => {
-    if (!demoFlag) return;
+    if (!demoFlag || typeof demoFlag === 'boolean') return;
     try {
       await toggleFlag({ flagId: demoFlag._id });
     } catch (error) {
