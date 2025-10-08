@@ -70,22 +70,25 @@ export const getNearbyAmenities = action({
   },
 });
 
-// Get Street View images for a property
+// Get Street View and satellite images for a property
 export const getStreetViewImages = action({
   args: {
     lat: v.number(),
     lng: v.number(),
   },
   handler: async (ctx, args): Promise<{
-    front: string;
-    angles: Array<{ heading: number; url: string }>;
+    streetViews: Array<{ url: string; description: string; heading: number }>;
+    satellite: string;
   }> => {
     const { createGooglePlacesClient } = await import('../lib/google-places/client');
     const client = createGooglePlacesClient();
     
+    const streetViews = await client.getStreetViewAngles(args.lat, args.lng);
+    const satellite = client.getStaticMapUrl(args.lat, args.lng, 20);
+    
     return {
-      front: client.getStreetViewUrl(args.lat, args.lng),
-      angles: client.getStreetViewAngles(args.lat, args.lng),
+      streetViews,
+      satellite,
     };
   },
 });

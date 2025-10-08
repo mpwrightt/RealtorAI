@@ -344,10 +344,12 @@ export default function NewListingPage() {
               {streetViewPhotos.length > 0 && (
                 <div className="p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
                   <p className="text-sm font-medium text-purple-900 dark:text-purple-100">
-                    ✨ {streetViewPhotos.length} AI-enhanced Street View photo{streetViewPhotos.length > 1 ? 's' : ''} added
+                    ✨ {streetViewPhotos.length} AI-enhanced photo{streetViewPhotos.length > 1 ? 's' : ''} added
                   </p>
                   <p className="text-xs text-purple-700 dark:text-purple-300 mt-1">
-                    Professional exterior photos generated automatically
+                    {streetViewPhotos.length === 1 
+                      ? 'Professional exterior photo generated'
+                      : `Includes Street View angles + aerial backyard view`}
                   </p>
                 </div>
               )}

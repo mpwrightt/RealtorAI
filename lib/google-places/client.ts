@@ -219,18 +219,97 @@ export class GooglePlacesClient {
     return `https://maps.googleapis.com/maps/api/place/photo?maxwidth=${maxWidth}&photo_reference=${photoReference}&key=${this.apiKey}`;
   }
 
-  // Get Street View static image URL
-  getStreetViewUrl(lat: number, lng: number, size: string = '1600x900'): string {
-    return `https://maps.googleapis.com/maps/api/streetview?size=${size}&location=${lat},${lng}&fov=90&heading=0&pitch=0&key=${this.apiKey}`;
+  // Get Street View metadata to find best position and heading
+  async getStreetViewMetadata(lat: number, lng: number, radius: number = 50): Promise<{
+    location: { lat: number; lng: number };
+    heading?: number;
+    available: boolean;
+  } | null> {
+    try {
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/streetview/metadata?location=${lat},${lng}&radius=${radius}&key=${this.apiKey}`
+      );
+      
+      if (!response.ok) {
+        return null;
+      }
+      
+      const data = await response.json();
+      
+      if (data.status !== 'OK') {
+        return { location: { lat, lng }, available: false };
+      }
+      
+      // Calculate heading from camera position to property
+      const cameraLat = data.location.lat;
+      const cameraLng = data.location.lng;
+      
+      // Calculate bearing from camera to property
+      const heading = this.calculateBearing(cameraLat, cameraLng, lat, lng);
+      
+      return {
+        location: data.location,
+        heading,
+        available: true,
+      };
+    } catch (error) {
+      console.error('Error getting Street View metadata:', error);
+      return null;
+    }
+  }
+  
+  // Calculate bearing between two points
+  private calculateBearing(lat1: number, lng1: number, lat2: number, lng2: number): number {
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const lat1Rad = lat1 * Math.PI / 180;
+    const lat2Rad = lat2 * Math.PI / 180;
+    
+    const y = Math.sin(dLng) * Math.cos(lat2Rad);
+    const x = Math.cos(lat1Rad) * Math.sin(lat2Rad) -
+              Math.sin(lat1Rad) * Math.cos(lat2Rad) * Math.cos(dLng);
+    
+    const bearing = Math.atan2(y, x) * 180 / Math.PI;
+    return (bearing + 360) % 360; // Normalize to 0-360
   }
 
-  // Get multiple Street View angles
-  getStreetViewAngles(lat: number, lng: number): Array<{ heading: number; url: string }> {
-    const angles = [0, 90, 180, 270]; // Front, right, back, left
-    return angles.map(heading => ({
-      heading,
-      url: `https://maps.googleapis.com/maps/api/streetview?size=1600x900&location=${lat},${lng}&fov=90&heading=${heading}&pitch=0&key=${this.apiKey}`,
+  // Get Street View static image URL with smart heading
+  async getStreetViewUrl(lat: number, lng: number, size: string = '1600x900'): Promise<string> {
+    const metadata = await this.getStreetViewMetadata(lat, lng);
+    const heading = metadata?.heading || 0;
+    const location = metadata?.location || { lat, lng };
+    
+    return `https://maps.googleapis.com/maps/api/streetview?size=${size}&location=${location.lat},${location.lng}&fov=80&heading=${Math.round(heading)}&pitch=10&key=${this.apiKey}`;
+  }
+
+  // Get multiple Street View angles around the property
+  async getStreetViewAngles(lat: number, lng: number): Promise<Array<{ heading: number; url: string; description: string }>> {
+    const metadata = await this.getStreetViewMetadata(lat, lng);
+    
+    if (!metadata?.available) {
+      return [];
+    }
+    
+    const baseHeading = metadata.heading || 0;
+    const location = metadata.location;
+    
+    // Get views from slightly different angles around the main heading
+    const angles = [
+      { offset: 0, description: 'Front view' },
+      { offset: 30, description: 'Front-right angle' },
+      { offset: -30, description: 'Front-left angle' },
+      { offset: 90, description: 'Side view (right)' },
+    ];
+    
+    return angles.map(({ offset, description }) => ({
+      heading: Math.round((baseHeading + offset + 360) % 360),
+      url: `https://maps.googleapis.com/maps/api/streetview?size=1600x900&location=${location.lat},${location.lng}&fov=80&heading=${Math.round((baseHeading + offset + 360) % 360)}&pitch=10&key=${this.apiKey}`,
+      description,
     }));
+  }
+  
+  // Get satellite/aerial image of property
+  getStaticMapUrl(lat: number, lng: number, zoom: number = 20, size: string = '1600x900'): string {
+    return `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=${zoom}&size=${size}&maptype=satellite&key=${this.apiKey}`;
   }
 }
 

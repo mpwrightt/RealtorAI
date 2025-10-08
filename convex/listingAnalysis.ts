@@ -179,7 +179,7 @@ Return ONLY the description text, no titles or labels.`;
   },
 });
 
-// Fetch and enhance Street View images for a property
+// Fetch and enhance Street View + satellite images for a property
 export const fetchAndEnhanceStreetView = action({
   args: {
     lat: v.number(),
@@ -191,40 +191,68 @@ export const fetchAndEnhanceStreetView = action({
     error?: string;
   }> => {
     try {
-      console.log('📸 Fetching Street View images...');
+      console.log('📸 Fetching Street View and satellite images...');
       
-      // Get Street View URLs
-      const streetViewData = await ctx.runAction(api.addressLookup.getStreetViewImages, {
+      // Get Street View and satellite URLs
+      const imageData = await ctx.runAction(api.addressLookup.getStreetViewImages, {
         lat: args.lat,
         lng: args.lng,
       });
 
-      if (!streetViewData?.front) {
+      if (!imageData?.streetViews || imageData.streetViews.length === 0) {
         console.warn('⚠️ No Street View available for this location');
         return { success: false, photos: [], error: 'No Street View available' };
       }
 
-      console.log('🎨 Enhancing Street View image with AI...');
+      const uploadedPhotos: string[] = [];
       
-      // Enhance the front view image
-      const enhancedResult = await ctx.runAction(api.gemini.enhanceStreetViewImage, {
-        imageUrl: streetViewData.front,
-      });
-
-      if (!enhancedResult.success || !enhancedResult.storageId) {
-        console.warn('⚠️ Enhancement failed, using original');
-        // Could optionally upload original here as fallback
-        return { success: false, photos: [], error: 'Enhancement failed' };
+      console.log(`🎨 Enhancing ${imageData.streetViews.length} Street View angles...`);
+      
+      // Enhance Street View images (limit to 3 best angles to save costs)
+      const viewsToEnhance = imageData.streetViews.slice(0, 3);
+      
+      for (const view of viewsToEnhance) {
+        try {
+          console.log(`  - ${view.description} (heading: ${view.heading}°)`);
+          const result = await ctx.runAction(api.gemini.enhanceStreetViewImage, {
+            imageUrl: view.url,
+          });
+          
+          if (result.success && result.storageId) {
+            uploadedPhotos.push(result.storageId);
+          }
+        } catch (error) {
+          console.warn(`  ⚠️ Failed to enhance ${view.description}, skipping...`);
+        }
+      }
+      
+      // Enhance satellite view to ground-level backyard
+      if (imageData.satellite) {
+        try {
+          console.log('🛰️ Transforming satellite view to ground-level backyard...');
+          const satelliteResult = await ctx.runAction(api.gemini.enhanceSatelliteImage, {
+            imageUrl: imageData.satellite,
+            propertyDescription: `Property at coordinates ${args.lat}, ${args.lng}`,
+          });
+          
+          if (satelliteResult.success && satelliteResult.storageId) {
+            uploadedPhotos.push(satelliteResult.storageId);
+            console.log('✅ Satellite view transformed successfully');
+          }
+        } catch (error) {
+          console.warn('⚠️ Satellite transformation failed, skipping...');
+        }
       }
 
-      console.log('✅ Street View enhanced successfully');
+      console.log(`✅ Successfully processed ${uploadedPhotos.length} images`);
       return {
-        success: true,
-        photos: [enhancedResult.storageId],
+        success: uploadedPhotos.length > 0,
+        photos: uploadedPhotos,
+        error: uploadedPhotos.length === 0 ? 'All enhancements failed' : undefined,
       };
 
     } catch (error: any) {
-      console.error('❌ Error fetching/enhancing Street View:', error);
+      console.error('❌ Error fetching/enhancing images:', error);
       return {
         success: false,
         photos: [],
