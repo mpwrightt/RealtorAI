@@ -206,14 +206,17 @@ export const fetchAndEnhanceStreetView = action({
 
       const uploadedPhotos: string[] = [];
       
-      console.log(`🎨 Enhancing ${imageData.streetViews.length} Street View angles...`);
+      // Step 1: Use AI to select best Street View angles
+      console.log(`🔍 Analyzing ${imageData.streetViews.length} Street View angles with object detection...`);
+      const { selectBestAngles } = await import('../lib/object-detection');
+      const bestAngles = await selectBestAngles(imageData.streetViews, 2); // Select top 2
       
-      // Enhance Street View images (limit to 3 best angles to save costs)
-      const viewsToEnhance = imageData.streetViews.slice(0, 3);
+      console.log(`🎨 Enhancing ${bestAngles.length} best Street View angles...`);
       
-      for (const view of viewsToEnhance) {
+      // Step 2: Only enhance the best angles (cost savings!)
+      for (const view of bestAngles) {
         try {
-          console.log(`  - ${view.description} (heading: ${view.heading}°)`);
+          console.log(`  - ${view.description} (score: ${view.score}, confidence: ${view.detection.confidence.toFixed(2)})`);
           const result = await ctx.runAction(api.gemini.enhanceStreetViewImage, {
             imageUrl: view.url,
           });

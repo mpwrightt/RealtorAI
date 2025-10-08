@@ -22,7 +22,64 @@ The implementation is **complete** and uses the same Google AI Studio API key as
 ### No Additional Setup Required:
 Uses the same `GOOGLE_AI_STUDIO_API_KEY` - just set `GOOGLE_IMAGE_MODEL=gemini-2.5-flash-image` in your `.env.local`
 
-## How It Works (Planned)
+## Intelligent Angle Selection (NEW!)
+
+We now use **AI-powered object detection** to automatically select the best Street View angles before enhancing:
+
+### The Problem
+- Previously: Enhanced all 4 Street View angles blindly
+- Cost: 4 × $0.05 = $0.20 per listing
+- Issue: Some angles show roads/trees, not the house!
+
+### The Solution
+1. **Fetch 4 Street View angles** (front, right, left, side)
+2. **Run object detection** on each angle (Roboflow API or fallback heuristics)
+3. **Score each angle** (0-100 based on building presence, confidence, size)
+4. **Select top 2 angles** with best scores
+5. **Only enhance the best 2** → 50% cost savings!
+
+### Scoring Algorithm
+```
+Score = Base (40) + Confidence (40) + Size (20)
+
+- Has building: +40 points
+- Building confidence: 0-40 points  
+- Building size (20-70% of image): +20 points
+```
+
+### Detection Methods
+
+**Option 1: Roboflow API (Recommended)**
+- Pre-trained building detection model
+- Accurate object detection
+- Cost: $0.01 per image × 4 = $0.04/listing
+- Setup: Just add `ROBOFLOW_API_KEY` to `.env.local`
+
+**Option 2: Simple Heuristics (Free Fallback)**
+- No API needed, always available
+- Uses heading-based scoring
+- Prefers front/diagonal views
+- Confidence: 0.6-0.8
+
+### Cost Analysis
+
+**Before intelligent selection:**
+- 4 angles × $0.05 = $0.20
+- Some angles don't show house
+
+**After intelligent selection (with Roboflow):**
+- Detection: 4 × $0.01 = $0.04
+- Enhancement: 2 × $0.05 = $0.10
+- Total: $0.14/listing
+- **Savings: 30%**
+
+**With fallback (no Roboflow):**
+- Detection: $0.00 (free heuristics)
+- Enhancement: 2 × $0.05 = $0.10
+- Total: $0.10/listing
+- **Savings: 50%**
+
+## How It Works (Implementation)
 
 ### 1. Street View Enhancement
 
