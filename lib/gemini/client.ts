@@ -47,7 +47,8 @@ export class GeminiClient {
 
     this.client = new GoogleGenerativeAI(apiKey);
     this.analysisModel = process.env.GOOGLE_AI_MODEL || 'gemini-1.5-flash-latest';
-    this.imageModel = process.env.GOOGLE_IMAGE_MODEL || 'imagen-3.0-generate-001';
+    // Gemini 2.5 Flash Image - image generation and editing
+    this.imageModel = process.env.GOOGLE_IMAGE_MODEL || 'gemini-2.5-flash-image';
   }
 
   async analyzePropertyPhoto(
@@ -159,19 +160,30 @@ Suggested use guidelines:
     imageData: string,
     mimeType: string = 'image/jpeg'
   ): Promise<string> {
-    const model = this.client.getGenerativeModel({ model: this.analysisModel });
+    const model = this.client.getGenerativeModel({ 
+      model: this.imageModel,
+      generationConfig: {
+        temperature: 0.4,
+        topP: 0.95,
+        topK: 40,
+      },
+    });
 
-    const prompt = `You are a professional real estate photographer. Enhance this street view property photo to make it more appealing for a real estate listing:
+    const prompt = `You are a professional real estate photographer. Transform this street view property photo into a professional, high-quality real estate listing image.
 
-Requirements:
-- Improve lighting and color balance
-- Enhance clarity and sharpness
-- Make the property look inviting
-- Keep it realistic - no fake elements
-- Professional real estate photography style
-- Warm, welcoming tone
+IMPORTANT: Generate a new enhanced version of this property photo.
 
-Return the enhanced image while maintaining the same composition and angle.`;
+Enhancement requirements:
+- Improve lighting to be warm and inviting
+- Enhance color saturation and vibrancy
+- Increase clarity and sharpness
+- Remove any blur or compression artifacts
+- Professional real estate photography quality
+- Make the property look attractive and well-maintained
+- Keep it photorealistic - no cartoonish or fake elements
+- Maintain the same angle, composition, and all actual property features
+
+Style: Professional real estate photography, golden hour lighting, clear blue sky, vibrant colors, sharp details.`;
 
     try {
       const result = await model.generateContent([
@@ -185,12 +197,18 @@ Return the enhanced image while maintaining the same composition and angle.`;
       ]);
 
       const response = await result.response;
-      const text = response.text();
       
-      // Note: Gemini 1.5 doesn't actually return images, it analyzes them
-      // We need to use Imagen API for actual image generation
-      // For now, return the original image URL
-      console.log('Image enhancement requested, but requires Imagen API integration');
+      // Check if response contains generated image
+      if (response.candidates && response.candidates[0]?.content?.parts) {
+        for (const part of response.candidates[0].content.parts) {
+          if (part.inlineData) {
+            console.log('✅ Street View image enhanced successfully');
+            return part.inlineData.data;
+          }
+        }
+      }
+      
+      console.warn('⚠️ No enhanced image in response, using original');
       return imageData;
     } catch (error) {
       console.error('Error enhancing image:', error);
@@ -204,24 +222,36 @@ Return the enhanced image while maintaining the same composition and angle.`;
     propertyDescription: string,
     mimeType: string = 'image/jpeg'
   ): Promise<string> {
-    const model = this.client.getGenerativeModel({ model: this.analysisModel });
+    const model = this.client.getGenerativeModel({ 
+      model: this.imageModel,
+      generationConfig: {
+        temperature: 0.6,
+        topP: 0.95,
+        topK: 40,
+      },
+    });
 
-    const prompt = `You are an AI that transforms satellite/aerial property images into realistic ground-level views.
+    const prompt = `You are an AI that creates realistic ground-level property photography from aerial/satellite views.
 
-Given this satellite view of a property, generate a realistic ground-level photo showing the backyard from a standing perspective:
+IMPORTANT: Generate a NEW ground-level photograph of this property's backyard.
+
+Based on this satellite/aerial view, create a realistic ground-level photo showing:
 
 Property Context: ${propertyDescription}
 
-Requirements:
-- Transform the aerial view into a natural ground-level perspective
-- Show the backyard, landscaping, and outdoor features
+Transformation requirements:
+- Convert the bird's-eye aerial perspective to a standing ground-level view
+- Show the backyard from a natural human eye height (about 5-6 feet)
+- Include all visible features: pools, decks, patios, landscaping, trees, fencing
+- Maintain accurate property layout and features from the satellite image
 - Professional real estate photography quality
-- Realistic lighting and shadows
-- Maintain accurate property features visible in the satellite image
-- Include any pools, decks, patios, or landscaping elements
-- Make it look like a professional photographer took it from the yard
+- Natural outdoor lighting (sunny day, soft shadows)
+- Realistic depth and perspective
+- Show the house/building in the background if visible
+- Make it look like a professional photographer standing in the yard
+- Photorealistic rendering - no fake or cartoonish elements
 
-Style: High-quality real estate photography, warm natural lighting, inviting atmosphere.`;
+Style: High-end real estate photography, warm natural light, inviting backyard atmosphere, clear and sharp details, professionally composed.`;
 
     try {
       const result = await model.generateContent([
@@ -236,9 +266,18 @@ Style: High-quality real estate photography, warm natural lighting, inviting atm
 
       const response = await result.response;
       
-      // This requires Imagen 3.0 for actual image generation
-      console.log('Satellite-to-ground transformation requested - requires Imagen API');
-      return satelliteImageData; // Return original for now
+      // Check if response contains generated image
+      if (response.candidates && response.candidates[0]?.content?.parts) {
+        for (const part of response.candidates[0].content.parts) {
+          if (part.inlineData) {
+            console.log('✅ Satellite view transformed to ground-level successfully');
+            return part.inlineData.data;
+          }
+        }
+      }
+      
+      console.warn('⚠️ No transformed image in response, using original');
+      return satelliteImageData;
     } catch (error) {
       console.error('Error transforming satellite image:', error);
       return satelliteImageData;
