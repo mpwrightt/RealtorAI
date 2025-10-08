@@ -13,6 +13,7 @@ import type {
   FilterApi,
   FunctionReference,
 } from "convex/server";
+import type * as addressLookup from "../addressLookup.js";
 import type * as admin_agents from "../admin/agents.js";
 import type * as admin_analytics from "../admin/analytics.js";
 import type * as admin_auth from "../admin/auth.js";
@@ -31,6 +32,7 @@ import type * as demoData from "../demoData.js";
 import type * as emailNotifications from "../emailNotifications.js";
 import type * as favorites from "../favorites.js";
 import type * as files from "../files.js";
+import type * as gemini from "../gemini.js";
 import type * as http from "../http.js";
 import type * as integrations from "../integrations.js";
 import type * as leads from "../leads.js";
@@ -38,6 +40,8 @@ import type * as lib_activityLogger from "../lib/activityLogger.js";
 import type * as lib_adminAuth from "../lib/adminAuth.js";
 import type * as lib_encryption from "../lib/encryption.js";
 import type * as lib_zapierTriggers from "../lib/zapierTriggers.js";
+import type * as listingAnalysis from "../listingAnalysis.js";
+import type * as listingDrafts from "../listingDrafts.js";
 import type * as listings from "../listings.js";
 import type * as marketing from "../marketing.js";
 import type * as matchScoring from "../matchScoring.js";
@@ -69,6 +73,7 @@ import type * as zapier from "../zapier.js";
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  addressLookup: typeof addressLookup;
   "admin/agents": typeof admin_agents;
   "admin/analytics": typeof admin_analytics;
   "admin/auth": typeof admin_auth;
@@ -87,6 +92,7 @@ declare const fullApi: ApiFromModules<{
   emailNotifications: typeof emailNotifications;
   favorites: typeof favorites;
   files: typeof files;
+  gemini: typeof gemini;
   http: typeof http;
   integrations: typeof integrations;
   leads: typeof leads;
@@ -94,6 +100,8 @@ declare const fullApi: ApiFromModules<{
   "lib/adminAuth": typeof lib_adminAuth;
   "lib/encryption": typeof lib_encryption;
   "lib/zapierTriggers": typeof lib_zapierTriggers;
+  listingAnalysis: typeof listingAnalysis;
+  listingDrafts: typeof listingDrafts;
   listings: typeof listings;
   marketing: typeof marketing;
   matchScoring: typeof matchScoring;

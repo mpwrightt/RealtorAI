@@ -606,4 +606,48 @@ export default defineSchema({
     })
       .index("by_agent", ["agentId"])
       .index("by_timestamp", ["timestamp"]),
+    
+    // Listing Drafts (AI-powered listing creator)
+    listingDrafts: defineTable({
+      agentId: v.id("agents"),
+      address: v.optional(v.string()),
+      city: v.optional(v.string()),
+      state: v.optional(v.string()),
+      zipCode: v.optional(v.string()),
+      price: v.optional(v.number()),
+      photos: v.array(v.id("_storage")),
+      aiAnalysis: v.optional(v.object({
+        bedrooms: v.optional(v.number()),
+        bathrooms: v.optional(v.number()),
+        sqft: v.optional(v.number()),
+        features: v.array(v.string()),
+        photoAnalysis: v.array(v.object({
+          storageId: v.id("_storage"),
+          roomType: v.string(),
+          features: v.array(v.string()),
+          qualityScore: v.number(),
+          suggestedUse: v.string(),
+          order: v.number(),
+        })),
+        suggestedCoverPhoto: v.optional(v.id("_storage")),
+        description: v.optional(v.string()),
+        confidence: v.number(),
+      })),
+      manualOverrides: v.optional(v.object({
+        bedrooms: v.optional(v.number()),
+        bathrooms: v.optional(v.number()),
+        sqft: v.optional(v.number()),
+        features: v.optional(v.array(v.string())),
+        description: v.optional(v.string()),
+        propertyType: v.optional(v.string()),
+      })),
+      coordinates: v.optional(v.object({
+        lat: v.number(),
+        lng: v.number(),
+      })),
+      lastSaved: v.number(),
+      createdAt: v.number(),
+    })
+      .index("byAgentId", ["agentId"])
+      .index("byLastSaved", ["lastSaved"]),
   });
