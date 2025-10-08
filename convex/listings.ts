@@ -257,6 +257,21 @@ export const getListingWithAnalytics = query({
     const listing = await ctx.db.get(args.listingId);
     if (!listing) return null;
 
+    // Convert image storage IDs to URLs
+    const imageUrls = listing.images 
+      ? await Promise.all(
+          listing.images.map(async (storageId) => {
+            try {
+              const url = await ctx.storage.getUrl(storageId as any);
+              return url || '';
+            } catch (error) {
+              console.error('Failed to get image URL:', error);
+              return '';
+            }
+          })
+        )
+      : [];
+
     // Get view analytics
     const views = await ctx.db
       .query("propertyViews")
@@ -280,7 +295,10 @@ export const getListingWithAnalytics = query({
     );
 
     return {
-      listing,
+      listing: {
+        ...listing,
+        images: imageUrls.filter(url => url !== ''), // Replace storage IDs with URLs
+      },
       analytics: {
         totalViews: views.length,
         uniqueViewers,
