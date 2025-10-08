@@ -21,12 +21,12 @@ async function testStreetView() {
     console.log('1️⃣  Testing Google Places API...');
     const placesClient = createGooglePlacesClient();
     
-    const streetViewUrl = placesClient.getStreetViewUrl(testAddress.lat, testAddress.lng);
+    const streetViewUrl = await placesClient.getStreetViewUrl(testAddress.lat, testAddress.lng);
     console.log('✅ Street View URL generated:');
     console.log(streetViewUrl);
     console.log();
 
-    const angles = placesClient.getStreetViewAngles(testAddress.lat, testAddress.lng);
+    const angles = await placesClient.getStreetViewAngles(testAddress.lat, testAddress.lng);
     console.log('✅ Multiple angle URLs generated:');
     angles.forEach(angle => {
       console.log(`   ${angle.heading}°: ${angle.url.substring(0, 80)}...`);

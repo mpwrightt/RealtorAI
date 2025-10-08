@@ -131,7 +131,7 @@ export class GooglePlacesClient {
       })) || [];
 
       // Generate Street View URL
-      const streetViewUrl = this.getStreetViewUrl(
+      const streetViewUrl = await this.getStreetViewUrl(
         addressComponents.lat,
         addressComponents.lng
       );

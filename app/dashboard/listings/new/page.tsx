@@ -70,7 +70,7 @@ export default function NewListingPage() {
         });
         
         if (result.success && result.photos.length > 0) {
-          setStreetViewPhotos(result.photos);
+          setStreetViewPhotos(result.photos as Id<'_storage'>[]);
           console.log(`✅ Added ${result.photos.length} enhanced Street View photos`);
         }
       } catch (err) {
