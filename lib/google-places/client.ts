@@ -17,6 +17,13 @@ export interface PropertyDetails {
   placeId: string;
   propertyType?: string;
   nearbyAmenities?: string[];
+  photos?: Array<{
+    photoReference: string;
+    height: number;
+    width: number;
+    url?: string;
+  }>;
+  streetViewUrl?: string;
 }
 
 export class GooglePlacesClient {
@@ -72,7 +79,7 @@ export class GooglePlacesClient {
         params: {
           place_id: placeId,
           key: this.apiKey,
-          fields: ['address_components', 'formatted_address', 'geometry', 'types'],
+          fields: ['address_components', 'formatted_address', 'geometry', 'types', 'photos'],
         },
       });
 
@@ -115,10 +122,26 @@ export class GooglePlacesClient {
         propertyType = 'single-family';
       }
 
+      // Get photos from Google Places
+      const photos = result.photos?.slice(0, 5).map(photo => ({
+        photoReference: photo.photo_reference,
+        height: photo.height,
+        width: photo.width,
+        url: this.getPhotoUrl(photo.photo_reference, 1600), // High resolution
+      })) || [];
+
+      // Generate Street View URL
+      const streetViewUrl = this.getStreetViewUrl(
+        addressComponents.lat,
+        addressComponents.lng
+      );
+
       return {
         address: addressComponents,
         placeId,
         propertyType,
+        photos,
+        streetViewUrl,
       };
     } catch (error) {
       console.error('Error getting place details:', error);
@@ -189,6 +212,25 @@ export class GooglePlacesClient {
       console.error('Error getting nearby amenities:', error);
       return [];
     }
+  }
+
+  // Get URL for a Google Places photo
+  getPhotoUrl(photoReference: string, maxWidth: number = 1600): string {
+    return `https://maps.googleapis.com/maps/api/place/photo?maxwidth=${maxWidth}&photo_reference=${photoReference}&key=${this.apiKey}`;
+  }
+
+  // Get Street View static image URL
+  getStreetViewUrl(lat: number, lng: number, size: string = '1600x900'): string {
+    return `https://maps.googleapis.com/maps/api/streetview?size=${size}&location=${lat},${lng}&fov=90&heading=0&pitch=0&key=${this.apiKey}`;
+  }
+
+  // Get multiple Street View angles
+  getStreetViewAngles(lat: number, lng: number): Array<{ heading: number; url: string }> {
+    const angles = [0, 90, 180, 270]; // Front, right, back, left
+    return angles.map(heading => ({
+      heading,
+      url: `https://maps.googleapis.com/maps/api/streetview?size=1600x900&location=${lat},${lng}&fov=90&heading=${heading}&pitch=0&key=${this.apiKey}`,
+    }));
   }
 }
 

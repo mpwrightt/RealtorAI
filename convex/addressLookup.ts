@@ -69,3 +69,23 @@ export const getNearbyAmenities = action({
     return await client.getNearbyAmenities(args.lat, args.lng, args.radius);
   },
 });
+
+// Get Street View images for a property
+export const getStreetViewImages = action({
+  args: {
+    lat: v.number(),
+    lng: v.number(),
+  },
+  handler: async (ctx, args): Promise<{
+    front: string;
+    angles: Array<{ heading: number; url: string }>;
+  }> => {
+    const { createGooglePlacesClient } = await import('../lib/google-places/client');
+    const client = createGooglePlacesClient();
+    
+    return {
+      front: client.getStreetViewUrl(args.lat, args.lng),
+      angles: client.getStreetViewAngles(args.lat, args.lng),
+    };
+  },
+});
