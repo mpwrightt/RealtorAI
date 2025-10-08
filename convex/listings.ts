@@ -1,6 +1,28 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, QueryCtx } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
+
+// Helper function to convert listing storage IDs to URLs
+async function convertListingImagesToUrls(ctx: QueryCtx, listing: any) {
+  if (!listing || !listing.images) return listing;
+  
+  const imageUrls = await Promise.all(
+    listing.images.map(async (storageId: any) => {
+      try {
+        const url = await ctx.storage.getUrl(storageId);
+        return url || '';
+      } catch (error) {
+        console.error('Failed to get image URL:', error);
+        return '';
+      }
+    })
+  );
+  
+  return {
+    ...listing,
+    images: imageUrls.filter((url: string) => url !== ''),
+  };
+}
 
 export const createListing = mutation({
   args: {
@@ -67,7 +89,7 @@ export const getListingById = query({
   args: { listingId: v.id("listings") },
   handler: async (ctx, args) => {
     const listing = await ctx.db.get(args.listingId);
-    return listing;
+    return await convertListingImagesToUrls(ctx, listing);
   },
 });
 
@@ -81,13 +103,18 @@ export const getListingsByAgent = query({
       .query("listings")
       .withIndex("byAgentId", (q) => q.eq("agentId", args.agentId));
 
-    const listings = await query.collect();
+    let listings = await query.collect();
 
     if (args.status) {
-      return listings.filter((l) => l.status === args.status);
+      listings = listings.filter((l) => l.status === args.status);
     }
 
-    return listings.sort((a, b) => b.updatedAt - a.updatedAt);
+    // Convert storage IDs to URLs
+    const listingsWithUrls = await Promise.all(
+      listings.map(listing => convertListingImagesToUrls(ctx, listing))
+    );
+
+    return listingsWithUrls.sort((a, b) => b.updatedAt - a.updatedAt);
   },
 });
 
@@ -150,7 +177,12 @@ export const searchListings = query({
       );
     }
 
-    return listings.sort((a, b) => b.updatedAt - a.updatedAt);
+    // Convert storage IDs to URLs for all listings
+    const listingsWithUrls = await Promise.all(
+      listings.map(listing => convertListingImagesToUrls(ctx, listing))
+    );
+
+    return listingsWithUrls.sort((a, b) => b.updatedAt - a.updatedAt);
   },
 });
 
@@ -211,7 +243,12 @@ export const getListingsByCity = query({
       .filter((q) => q.eq(q.field("status"), "active"))
       .collect();
 
-    return listings.sort((a, b) => b.updatedAt - a.updatedAt);
+    // Convert storage IDs to URLs
+    const listingsWithUrls = await Promise.all(
+      listings.map(listing => convertListingImagesToUrls(ctx, listing))
+    );
+
+    return listingsWithUrls.sort((a, b) => b.updatedAt - a.updatedAt);
   },
 });
 
@@ -232,7 +269,12 @@ export const getListingsByPriceRange = query({
       )
       .collect();
 
-    return listings.sort((a, b) => b.updatedAt - a.updatedAt);
+    // Convert storage IDs to URLs
+    const listingsWithUrls = await Promise.all(
+      listings.map(listing => convertListingImagesToUrls(ctx, listing))
+    );
+
+    return listingsWithUrls.sort((a, b) => b.updatedAt - a.updatedAt);
   },
 });
 
@@ -246,7 +288,12 @@ export const getMultipleListings = query({
       args.listingIds.map((id) => ctx.db.get(id))
     );
     
-    return listings.filter((l) => l !== null);
+    const validListings = listings.filter((l) => l !== null);
+    
+    // Convert storage IDs to URLs
+    return await Promise.all(
+      validListings.map(listing => convertListingImagesToUrls(ctx, listing))
+    );
   },
 });
 
