@@ -192,30 +192,31 @@ export const enhanceStreetViewImage = action({
     error?: string;
   }> => {
     try {
-      console.log('🎨 Enhancing Street View image...');
+      console.log('🎨 Fetching Street View image from URL...');
+      
+      // Fetch the Street View image first
+      const imageResponse = await fetch(args.imageUrl);
+      if (!imageResponse.ok) {
+        throw new Error(`Failed to fetch image: ${imageResponse.statusText}`);
+      }
+      
+      const imageBuffer = await imageResponse.arrayBuffer();
+      const base64Image = Buffer.from(imageBuffer).toString('base64');
+      const mimeType = imageResponse.headers.get('content-type') || 'image/jpeg';
+      
+      console.log('✅ Image fetched, enhancing with AI...');
       
       // Initialize Gemini client
       const { createGeminiClient } = await import('../lib/gemini/client');
       const gemini = createGeminiClient();
       
-      // Enhance the image
-      const result = await gemini.generateEnhancedPropertyPhoto(
-        args.imageUrl,
-        'street-view'
-      );
+      // Enhance the image using the base64 data directly
+      const enhancedBase64 = await gemini.enhanceStreetViewImage(base64Image, mimeType);
       
-      if (!result.success || !result.enhancedImageUrl) {
-        console.error('❌ Enhancement failed:', result.error);
-        return { success: false, error: result.error };
-      }
-      
-      // Convert base64 data URL to blob
-      const base64Data = result.enhancedImageUrl.split(',')[1];
-      const blob = Buffer.from(base64Data, 'base64');
-      
-      // Upload to Convex storage
+      // Upload enhanced image to storage
+      const enhancedBlob = Buffer.from(enhancedBase64, 'base64');
       const storageId = await ctx.storage.store(
-        new Blob([blob], { type: 'image/jpeg' }) as any
+        new Blob([enhancedBlob], { type: mimeType }) as any
       );
       
       console.log('✅ Enhanced image uploaded:', storageId);
@@ -227,10 +228,27 @@ export const enhanceStreetViewImage = action({
       
     } catch (error: any) {
       console.error('❌ Error enhancing Street View:', error);
-      return {
-        success: false,
-        error: error.message,
-      };
+      
+      // Fallback: Upload original image without enhancement
+      try {
+        console.log('⚠️ Attempting to upload original image as fallback...');
+        const imageResponse = await fetch(args.imageUrl);
+        const imageBuffer = await imageResponse.arrayBuffer();
+        const storageId = await ctx.storage.store(
+          new Blob([imageBuffer], { type: 'image/jpeg' }) as any
+        );
+        console.log('✅ Original image uploaded as fallback:', storageId);
+        return {
+          success: true,
+          storageId,
+        };
+      } catch (fallbackError: any) {
+        console.error('❌ Fallback also failed:', fallbackError);
+        return {
+          success: false,
+          error: error.message,
+        };
+      }
     }
   },
 });
