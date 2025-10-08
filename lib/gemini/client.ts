@@ -54,24 +54,30 @@ export class GeminiClient {
   /**
    * Get prompt for aerial/satellite view enhancement (keeps aerial perspective)
    */
-  private getAerialEnhancementPrompt(propertyDescription: string): string {
+  private getAerialEnhancementPrompt(propertyDescription: string, multiImage: boolean = false): string {
+    const multiImageNote = multiImage 
+      ? '\n\nNOTE: You have been given the same property from multiple zoom levels. Use all images to understand the property details, then create ONE enhanced aerial photograph at an appropriate zoom level showing the property clearly.'
+      : '';
+    
     return `You are a professional real estate photographer enhancing aerial property photos.
 
-IMPORTANT: Enhance this satellite/aerial property image to make it more appealing for real estate marketing.
+IMPORTANT: Enhance this satellite/aerial property image to make it more appealing for real estate marketing.${multiImageNote}
 
 Property: ${propertyDescription}
 
 Enhancement Requirements:
 - KEEP the aerial/bird's-eye perspective (do NOT change to ground level)
+- Focus on the main property building(s) - ensure they are clearly visible
 - Improve image clarity, sharpness, and color vibrancy
 - Enhance the visibility of property features (house, yard, landscaping, pool, etc.)
 - Make the image look professionally captured with a drone
 - Bring out the details of the roof, driveway, backyard layout
 - Optimize lighting and contrast for real estate photography
 - Keep all features accurate and realistic - no fake additions
+- Do NOT zoom out too far - the property should fill most of the frame
 - Professional aerial real estate photography style
 
-Style: High-quality drone photography, vibrant colors, crisp details, professional composition.`;
+Style: High-quality drone photography, vibrant colors, crisp details, professional composition, property-focused framing.`;
   }
 
   /**
@@ -117,33 +123,45 @@ Style: Professional real estate photography, warm natural light, inviting backya
       },
     });
 
-    const prompt = `You are a professional real estate photographer. You have been given multiple Street View photos of a property from different angles.
+    const prompt = `You are a professional real estate photographer creating ONE single hero shot for a property listing.
 
-IMPORTANT: Create ONE professional, magazine-quality real estate listing photograph of this property's exterior.
+IMPORTANT: You have ${imageDataArray.length} reference photos of the SAME PROPERTY from different angles. Study them to understand the architecture, then create ONE cohesive professional photograph.
 
 Property: ${propertyDescription}
 
-You have ${imageDataArray.length} reference photos from different angles. Use ALL of them to understand:
-- The complete architecture and style of the house
-- Colors, materials, and design details
-- Landscaping and outdoor features
-- Property layout and surroundings
+CRITICAL INSTRUCTIONS:
+1. This is ONE HOUSE - do NOT show multiple houses or duplicate the house
+2. Create a single, unified front exterior photograph
+3. Choose the most flattering angle (typically 45-degree front-angled view)
+4. Study all reference images to understand: architecture, colors, materials, windows, doors, roof style, siding
 
-Your Task:
-- Synthesize information from ALL angles to create the BEST possible front exterior shot
-- Show the house from the most flattering angle (typically front-angled view)
-- Professional real estate photography composition and lighting
-- Golden hour lighting (warm, inviting, soft shadows)
-- Remove distractions: cars, power lines, street clutter, utility boxes
-- Keep the house architecture 100% ACCURATE - no fake features
-- Maintain accurate: windows, doors, roof, colors, siding, landscaping
-- Clean, well-maintained appearance
-- Professional depth of field (slight background blur)
-- Make it look like a \$5,000 professional real estate photoshoot
+What to DO:
+✓ Create ONE professional front exterior shot of this single property
+✓ Golden hour lighting (warm, soft, inviting)
+✓ Professional real estate photography composition
+✓ Remove: parked cars, power lines, utility boxes, street clutter
+✓ Clean, sharp, well-maintained appearance
+✓ Professional depth of field (slight background blur)
+✓ Make it look like a magazine-quality listing photo
 
-Style: High-end real estate photography, golden hour lighting, magazine quality, inviting and aspirational.
+What NOT to do:
+✗ Do NOT show the house twice or duplicate it
+✗ Do NOT create a collage or side-by-side comparison
+✗ Do NOT add fake features (pools, decks, additions that aren't there)
+✗ Do NOT change the architectural style, colors, or materials
+✗ Do NOT merge multiple angles into one unrealistic image
 
-CRITICAL: Keep all architectural details accurate. Only remove cars, wires, clutter. Don't add fake features.`;
+Keep 100% ACCURATE:
+- Number and placement of windows
+- Door styles and locations
+- Roof type and color
+- Siding material and color
+- Landscaping and trees
+- Property size and scale
+
+Style: Single professional real estate listing photo, golden hour lighting, magazine quality, inviting, clean, aspirational.
+
+Remember: You are creating ONE photograph of ONE house, not a composite of multiple houses.`;
 
     try {
       // Build the content array with prompt + all images
@@ -346,7 +364,7 @@ Style: Professional real estate photography, golden hour lighting, clear blue sk
 
   // Transform satellite view to ground-level backyard shot OR enhance aerial view
   async satelliteToGroundLevel(
-    satelliteImageData: string,
+    satelliteImageData: string | Array<{ data: string; mimeType: string; zoom?: number }>,
     propertyDescription: string,
     mimeType: string = 'image/jpeg',
     enhancementMode: 'ground-level' | 'aerial-enhance' = 'aerial-enhance'
@@ -360,20 +378,36 @@ Style: Professional real estate photography, golden hour lighting, clear blue sk
       },
     });
 
+    const isMultiImage = Array.isArray(satelliteImageData);
     const prompt = enhancementMode === 'aerial-enhance'
-      ? this.getAerialEnhancementPrompt(propertyDescription)
+      ? this.getAerialEnhancementPrompt(propertyDescription, isMultiImage)
       : this.getGroundLevelTransformPrompt(propertyDescription);
 
     try {
-      const result = await model.generateContent([
-        prompt,
-        {
+      // Build content array
+      const contentParts: any[] = [prompt];
+      
+      if (isMultiImage) {
+        // Add all zoom levels
+        satelliteImageData.forEach(img => {
+          contentParts.push({
+            inlineData: {
+              mimeType: img.mimeType,
+              data: img.data,
+            },
+          });
+        });
+      } else {
+        // Single image (backward compatibility)
+        contentParts.push({
           inlineData: {
             mimeType,
             data: satelliteImageData,
           },
-        },
-      ]);
+        });
+      }
+      
+      const result = await model.generateContent(contentParts);
 
       const response = await result.response;
       
@@ -388,10 +422,12 @@ Style: Professional real estate photography, golden hour lighting, clear blue sk
       }
       
       console.warn('⚠️ No transformed image in response, using original');
-      return satelliteImageData;
+      // Return first image if array, otherwise return string
+      return Array.isArray(satelliteImageData) ? satelliteImageData[0].data : satelliteImageData;
     } catch (error) {
       console.error('Error transforming satellite image:', error);
-      return satelliteImageData;
+      // Return first image if array, otherwise return string
+      return Array.isArray(satelliteImageData) ? satelliteImageData[0].data : satelliteImageData;
     }
   }
 

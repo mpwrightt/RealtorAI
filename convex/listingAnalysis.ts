@@ -255,12 +255,30 @@ export const fetchAndEnhanceStreetView = action({
         }
       }
       
-      // Enhance satellite/aerial view
-      if (imageData.satellite) {
+      // Enhance satellite/aerial view with multiple zoom levels
+      if (imageData.satelliteZooms && imageData.satelliteZooms.length > 0) {
         try {
           const mode = process.env.SATELLITE_ENHANCEMENT_MODE || 'aerial-enhance';
           const action = mode === 'ground-level' ? 'Transforming to ground-level' : 'Enhancing aerial view';
-          console.log(`🛰️ ${action} of property...`);
+          console.log(`🛰️ ${action} of property with ${imageData.satelliteZooms.length} zoom levels...`);
+          
+          const satelliteResult = await ctx.runAction(api.gemini.enhanceSatelliteImage, {
+            imageUrls: imageData.satelliteZooms,
+            propertyDescription: `Property at coordinates ${args.lat}, ${args.lng}`,
+          });
+          
+          if (satelliteResult.success && satelliteResult.storageId) {
+            uploadedPhotos.push(satelliteResult.storageId);
+            console.log(`✅ Satellite image ${mode === 'ground-level' ? 'transformed' : 'enhanced'} successfully`);
+          }
+        } catch (error) {
+          console.warn('⚠️ Multi-zoom satellite enhancement failed, skipping...');
+        }
+      } else if (imageData.satellite) {
+        // Fallback to single image
+        try {
+          const mode = process.env.SATELLITE_ENHANCEMENT_MODE || 'aerial-enhance';
+          console.log(`🛰️ Enhancing single satellite image...`);
           
           const satelliteResult = await ctx.runAction(api.gemini.enhanceSatelliteImage, {
             imageUrl: imageData.satellite,
@@ -269,7 +287,7 @@ export const fetchAndEnhanceStreetView = action({
           
           if (satelliteResult.success && satelliteResult.storageId) {
             uploadedPhotos.push(satelliteResult.storageId);
-            console.log(`✅ Satellite image ${mode === 'ground-level' ? 'transformed' : 'enhanced'} successfully`);
+            console.log(`✅ Satellite image enhanced successfully`);
           }
         } catch (error) {
           console.warn('⚠️ Satellite enhancement failed, skipping...');

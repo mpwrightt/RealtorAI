@@ -253,10 +253,15 @@ export const enhanceStreetViewImage = action({
   },
 });
 
-// Enhance a satellite image and transform to ground-level
+// Enhance a satellite image with multi-zoom support
 export const enhanceSatelliteImage = action({
   args: {
-    imageUrl: v.string(),
+    imageUrl: v.optional(v.string()), // Single image (legacy)
+    imageUrls: v.optional(v.array(v.object({
+      url: v.string(),
+      zoom: v.number(),
+      description: v.string(),
+    }))), // Multiple zoom levels (new)
     propertyDescription: v.string(),
   },
   handler: async (ctx, args): Promise<{
@@ -265,43 +270,86 @@ export const enhanceSatelliteImage = action({
     error?: string;
   }> => {
     try {
-      console.log('🛰️ Fetching satellite image from URL...');
-      
-      // Fetch the satellite image
-      const imageResponse = await fetch(args.imageUrl);
-      if (!imageResponse.ok) {
-        throw new Error(`Failed to fetch image: ${imageResponse.statusText}`);
-      }
-      
-      const imageBuffer = await imageResponse.arrayBuffer();
-      const base64Image = Buffer.from(imageBuffer).toString('base64');
-      const mimeType = imageResponse.headers.get('content-type') || 'image/jpeg';
-      
-      console.log('✅ Image fetched, transforming to ground-level with AI...');
-      
       // Initialize Gemini client
       const { createGeminiClient } = await import('../lib/gemini/client');
       const gemini = createGeminiClient();
       
       // Enhancement mode: 'aerial-enhance' keeps aerial view, 'ground-level' transforms perspective
       const mode = process.env.SATELLITE_ENHANCEMENT_MODE === 'ground-level' ? 'ground-level' : 'aerial-enhance';
-      console.log(`Using satellite enhancement mode: ${mode}`);
       
-      // Transform/enhance satellite image using the base64 data
-      const enhancedBase64 = await gemini.satelliteToGroundLevel(
-        base64Image,
-        args.propertyDescription,
-        mimeType,
-        mode as 'aerial-enhance' | 'ground-level'
-      );
+      let enhancedBase64: string;
+      
+      if (args.imageUrls && args.imageUrls.length > 0) {
+        // NEW: Multi-zoom satellite enhancement
+        console.log(`🛰️ Fetching ${args.imageUrls.length} satellite zoom levels for better accuracy...`);
+        
+        const imageData: Array<{ data: string; mimeType: string; zoom: number }> = [];
+        
+        for (const img of args.imageUrls) {
+          try {
+            const response = await fetch(img.url);
+            if (!response.ok) continue;
+            
+            const buffer = await response.arrayBuffer();
+            const base64 = Buffer.from(buffer).toString('base64');
+            const mimeType = response.headers.get('content-type') || 'image/jpeg';
+            
+            imageData.push({
+              data: base64,
+              mimeType,
+              zoom: img.zoom,
+            });
+            
+            console.log(`  ✓ Fetched zoom level ${img.zoom}`);
+          } catch (error) {
+            console.warn(`  ⚠️ Failed to fetch zoom ${img.zoom}, skipping...`);
+          }
+        }
+        
+        if (imageData.length === 0) {
+          return { success: false, error: 'No satellite images could be fetched' };
+        }
+        
+        console.log(`🎨 Enhancing aerial view with ${imageData.length} zoom levels (mode: ${mode})...`);
+        enhancedBase64 = await gemini.satelliteToGroundLevel(
+          imageData,
+          args.propertyDescription,
+          'image/jpeg',
+          mode as 'aerial-enhance' | 'ground-level'
+        );
+        
+      } else if (args.imageUrl) {
+        // OLD: Single image enhancement (backward compatibility)
+        console.log('🛰️ Fetching single satellite image...');
+        
+        const imageResponse = await fetch(args.imageUrl);
+        if (!imageResponse.ok) {
+          throw new Error(`Failed to fetch image: ${imageResponse.statusText}`);
+        }
+        
+        const imageBuffer = await imageResponse.arrayBuffer();
+        const base64Image = Buffer.from(imageBuffer).toString('base64');
+        const mimeType = imageResponse.headers.get('content-type') || 'image/jpeg';
+        
+        console.log(`🎨 Enhancing satellite image (mode: ${mode})...`);
+        enhancedBase64 = await gemini.satelliteToGroundLevel(
+          base64Image,
+          args.propertyDescription,
+          mimeType,
+          mode as 'aerial-enhance' | 'ground-level'
+        );
+        
+      } else {
+        return { success: false, error: 'No image URL(s) provided' };
+      }
       
       // Upload enhanced image to storage
       const enhancedBlob = Buffer.from(enhancedBase64, 'base64');
       const storageId = await ctx.storage.store(
-        new Blob([enhancedBlob], { type: mimeType }) as any
+        new Blob([enhancedBlob], { type: 'image/jpeg' }) as any
       );
       
-      console.log('✅ Transformed image uploaded:', storageId);
+      console.log('✅ Enhanced satellite image uploaded:', storageId);
       
       return {
         success: true,
@@ -309,28 +357,31 @@ export const enhanceSatelliteImage = action({
       };
       
     } catch (error: any) {
-      console.error('❌ Error transforming satellite image:', error);
+      console.error('❌ Error enhancing satellite image:', error);
       
-      // Fallback: Upload original satellite image
-      try {
-        console.log('⚠️ Attempting to upload original satellite image as fallback...');
-        const imageResponse = await fetch(args.imageUrl);
+      // Fallback: Upload original satellite image if available
+      if (args.imageUrl) {
+        try {
+          console.log('⚠️ Attempting to upload original satellite image as fallback...');
+          const imageResponse = await fetch(args.imageUrl);
         const imageBuffer = await imageResponse.arrayBuffer();
         const storageId = await ctx.storage.store(
           new Blob([imageBuffer], { type: 'image/jpeg' }) as any
         );
-        console.log('✅ Original satellite image uploaded as fallback:', storageId);
-        return {
-          success: true,
-          storageId,
-        };
-      } catch (fallbackError: any) {
-        console.error('❌ Fallback also failed:', fallbackError);
-        return {
-          success: false,
-          error: error.message,
-        };
+          console.log('✅ Original satellite image uploaded as fallback:', storageId);
+          return {
+            success: true,
+            storageId,
+          };
+        } catch (fallbackError: any) {
+          console.error('❌ Fallback also failed:', fallbackError);
+        }
       }
+      
+      return {
+        success: false,
+        error: error.message,
+      };
     }
   },
 });

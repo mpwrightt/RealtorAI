@@ -79,16 +79,19 @@ export const getStreetViewImages = action({
   handler: async (ctx, args): Promise<{
     streetViews: Array<{ url: string; description: string; heading: number }>;
     satellite: string;
+    satelliteZooms: Array<{ url: string; zoom: number; description: string }>;
   }> => {
     const { createGooglePlacesClient } = await import('../lib/google-places/client');
     const client = createGooglePlacesClient();
     
     const streetViews = await client.getStreetViewAngles(args.lat, args.lng);
-    const satellite = client.getStaticMapUrl(args.lat, args.lng, 20);
+    const satellite = client.getStaticMapUrl(args.lat, args.lng, 21); // Max zoom for detail
+    const satelliteZooms = client.getMultiZoomSatelliteUrls(args.lat, args.lng);
     
     return {
       streetViews,
-      satellite,
+      satellite, // Single image (backward compatibility)
+      satelliteZooms, // Multiple zoom levels (new)
     };
   },
 });

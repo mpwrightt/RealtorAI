@@ -308,8 +308,25 @@ export class GooglePlacesClient {
   }
   
   // Get satellite/aerial image of property
-  getStaticMapUrl(lat: number, lng: number, zoom: number = 20, size: string = '1600x900'): string {
+  // Zoom 21 is maximum for satellite imagery (most detailed)
+  getStaticMapUrl(lat: number, lng: number, zoom: number = 21, size: string = '1600x900'): string {
     return `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=${zoom}&size=${size}&maptype=satellite&key=${this.apiKey}`;
+  }
+
+  // Get multiple satellite zoom levels for better enhancement
+  getMultiZoomSatelliteUrls(lat: number, lng: number): Array<{ url: string; zoom: number; description: string }> {
+    return [
+      {
+        url: this.getStaticMapUrl(lat, lng, 21), // Maximum detail
+        zoom: 21,
+        description: 'Close-up aerial view'
+      },
+      {
+        url: this.getStaticMapUrl(lat, lng, 20), // Slightly wider
+        zoom: 20,
+        description: 'Property context view'
+      },
+    ];
   }
 }
 
