@@ -53,7 +53,7 @@ export default function NewListingPage() {
   const agentsLoading = agents === undefined;
 
   // Can submit with just address and price - Street View photos are optional but will be auto-generated
-  const canSubmit = address && price;
+  const canSubmit = !!(address && price);
   
   // Auto-fetch Street View when address is selected
   const handleAddressSelect = async (selectedAddress: any) => {
@@ -89,8 +89,27 @@ export default function NewListingPage() {
   };
 
   const handleAnalyze = async () => {
+    console.log('🔍 Button clicked - checking requirements:', {
+      canSubmit,
+      hasAgent: !!currentAgent,
+      agentsLoading,
+      agentsCount: agents?.length,
+      userId: user?.id,
+      address: address?.formatted,
+      price,
+    });
+    
     if (!canSubmit || !currentAgent) {
-      console.log('❌ Cannot submit:', { canSubmit, hasAgent: !!currentAgent });
+      console.error('❌ Cannot submit - missing requirements:', {
+        canSubmit,
+        hasAgent: !!currentAgent,
+        reason: !currentAgent ? 'No agent found' : 'Missing address or price'
+      });
+      
+      // Show error to user
+      if (!currentAgent) {
+        setError('Agent account not found. Please contact support.');
+      }
       return;
     }
 

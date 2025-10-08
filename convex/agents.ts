@@ -177,6 +177,17 @@ export const listActiveAgents = query({
       .withIndex("byActive", (q) => q.eq("active", true))
       .collect();
     
-    return agents;
+    // Join with users table to get Clerk IDs
+    const agentsWithClerkIds = await Promise.all(
+      agents.map(async (agent) => {
+        const user = await ctx.db.get(agent.userId);
+        return {
+          ...agent,
+          clerkUserId: user?.externalId || null,
+        };
+      })
+    );
+    
+    return agentsWithClerkIds;
   },
 });
