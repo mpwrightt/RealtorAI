@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
@@ -18,7 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { useUser } from '@clerk/nextjs';
 
-export default function ReviewListingPage() {
+function ReviewListingContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const draftId = searchParams.get('draftId') as Id<'listingDrafts'> | null;
@@ -314,5 +314,19 @@ export default function ReviewListingPage() {
         </Button>
       </div>
     </div>
+  );
+}
+
+export default function ReviewListingPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <p className="text-muted-foreground">Loading draft...</p>
+        </div>
+      </div>
+    }>
+      <ReviewListingContent />
+    </Suspense>
   );
 }
