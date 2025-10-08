@@ -255,11 +255,29 @@ export const fetchAndEnhanceStreetView = action({
         }
       }
       
-      // Enhance satellite/aerial view with multiple zoom levels
-      if (imageData.satelliteZooms && imageData.satelliteZooms.length > 0) {
+      // Handle satellite/aerial view
+      const satelliteMode = process.env.SATELLITE_ENHANCEMENT_MODE || 'aerial-enhance';
+      
+      if (satelliteMode === 'off') {
+        // Skip AI enhancement, just use original satellite image
+        if (imageData.satellite) {
+          console.log('🛰️ Using original satellite image (enhancement disabled)...');
+          try {
+            const response = await fetch(imageData.satellite);
+            const buffer = await response.arrayBuffer();
+            const storageId = await ctx.storage.store(
+              new Blob([buffer], { type: 'image/jpeg' }) as any
+            );
+            uploadedPhotos.push(storageId);
+            console.log('✅ Original satellite image uploaded');
+          } catch (error) {
+            console.warn('⚠️ Failed to upload original satellite image');
+          }
+        }
+      } else if (imageData.satelliteZooms && imageData.satelliteZooms.length > 0) {
+        // AI enhancement with multiple zoom levels
         try {
-          const mode = process.env.SATELLITE_ENHANCEMENT_MODE || 'aerial-enhance';
-          const action = mode === 'ground-level' ? 'Transforming to ground-level' : 'Enhancing aerial view';
+          const action = satelliteMode === 'ground-level' ? 'Transforming to ground-level' : 'Enhancing aerial view (subtle)';
           console.log(`🛰️ ${action} of property with ${imageData.satelliteZooms.length} zoom levels...`);
           
           const satelliteResult = await ctx.runAction(api.gemini.enhanceSatelliteImage, {
@@ -269,16 +287,15 @@ export const fetchAndEnhanceStreetView = action({
           
           if (satelliteResult.success && satelliteResult.storageId) {
             uploadedPhotos.push(satelliteResult.storageId);
-            console.log(`✅ Satellite image ${mode === 'ground-level' ? 'transformed' : 'enhanced'} successfully`);
+            console.log(`✅ Satellite image ${satelliteMode === 'ground-level' ? 'transformed' : 'enhanced'} successfully`);
           }
         } catch (error) {
           console.warn('⚠️ Multi-zoom satellite enhancement failed, skipping...');
         }
       } else if (imageData.satellite) {
-        // Fallback to single image
+        // AI enhancement with single image
         try {
-          const mode = process.env.SATELLITE_ENHANCEMENT_MODE || 'aerial-enhance';
-          console.log(`🛰️ Enhancing single satellite image...`);
+          console.log(`🛰️ Enhancing single satellite image (subtle)...`);
           
           const satelliteResult = await ctx.runAction(api.gemini.enhanceSatelliteImage, {
             imageUrl: imageData.satellite,

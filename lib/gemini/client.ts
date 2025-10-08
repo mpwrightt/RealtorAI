@@ -56,28 +56,42 @@ export class GeminiClient {
    */
   private getAerialEnhancementPrompt(propertyDescription: string, multiImage: boolean = false): string {
     const multiImageNote = multiImage 
-      ? '\n\nNOTE: You have been given the same property from multiple zoom levels. Use all images to understand the property details, then create ONE enhanced aerial photograph at an appropriate zoom level showing the property clearly.'
+      ? '\n\nNOTE: You have been given the same property from multiple zoom levels. Use all images to understand the property details, then create ONE enhanced aerial photograph showing the property clearly.'
       : '';
     
-    return `You are a professional real estate photographer enhancing aerial property photos.
+    return `You are a professional photo editor cleaning up a satellite/aerial property image.
 
-IMPORTANT: Enhance this satellite/aerial property image to make it more appealing for real estate marketing.${multiImageNote}
+CRITICAL: This is a MINOR ENHANCEMENT ONLY. Do NOT redesign, rebuild, or change the property.
 
-Property: ${propertyDescription}
+Property: ${propertyDescription}${multiImageNote}
 
-Enhancement Requirements:
-- KEEP the aerial/bird's-eye perspective (do NOT change to ground level)
-- Focus on the main property building(s) - ensure they are clearly visible
-- Improve image clarity, sharpness, and color vibrancy
-- Enhance the visibility of property features (house, yard, landscaping, pool, etc.)
-- Make the image look professionally captured with a drone
-- Bring out the details of the roof, driveway, backyard layout
-- Optimize lighting and contrast for real estate photography
-- Keep all features accurate and realistic - no fake additions
-- Do NOT zoom out too far - the property should fill most of the frame
-- Professional aerial real estate photography style
+Your ONLY job is to improve image quality:
+- KEEP the exact same aerial/bird's-eye perspective
+- KEEP the exact same zoom level and framing
+- KEEP all buildings, structures, and features EXACTLY as they appear
+- KEEP the same roof style, color, and material
+- KEEP the same landscaping, trees, and yard layout
+- KEEP the same driveway, paths, and hardscaping
+- KEEP any pools, decks, or outdoor structures exactly as shown
 
-Style: High-quality drone photography, vibrant colors, crisp details, professional composition, property-focused framing.`;
+What you MAY do (SUBTLE improvements only):
+- Slightly improve image clarity and sharpness
+- Slightly enhance color vibrancy (don't oversaturate)
+- Slightly improve lighting and contrast
+- Make it look like a higher-resolution aerial photo
+
+What you MUST NOT do:
+✗ Do NOT change the property layout or structure
+✗ Do NOT add or remove buildings or features
+✗ Do NOT change roof colors or styles
+✗ Do NOT add landscaping that isn't there
+✗ Do NOT change the perspective or zoom level
+✗ Do NOT make it look fake or AI-generated
+✗ Do NOT rebuild the house - just clean up the image
+
+Think of this as: "Make the satellite image slightly clearer and more vibrant, but keep everything exactly as it is."
+
+Style: Clean, sharp aerial photography with accurate property representation. Subtle enhancement only.`;
   }
 
   /**
@@ -380,9 +394,9 @@ Style: Professional real estate photography, golden hour lighting, clear blue sk
     const model = this.client.getGenerativeModel({ 
       model: this.imageModel,
       generationConfig: {
-        temperature: enhancementMode === 'aerial-enhance' ? 0.3 : 0.6, // Lower temp for enhancement
-        topP: 0.95,
-        topK: 40,
+        temperature: enhancementMode === 'aerial-enhance' ? 0.15 : 0.6, // Very low temp for minimal changes
+        topP: 0.9, // Lower for more conservative outputs
+        topK: 20, // Reduced for more predictable results
         responseModalities: ['IMAGE'], // Only return images
         imageConfig: {
           aspectRatio: '16:9', // Aerial photos look best in 16:9
