@@ -48,6 +48,9 @@ export default function NewListingPage() {
   // Get current agent from Clerk user
   const agents = useQuery(api.agents.listActiveAgents);
   const currentAgent = agents?.find((a: any) => a.clerkUserId === user?.id);
+  
+  // Show loading state while agents are being fetched
+  const agentsLoading = agents === undefined;
 
   // Can submit with just address and price - Street View photos are optional but will be auto-generated
   const canSubmit = address && price;
@@ -236,8 +239,50 @@ export default function NewListingPage() {
         </div>
       </div>
 
+      {/* Agent Check */}
+      {!agentsLoading && !currentAgent && (
+        <Card className="border-yellow-500">
+          <CardHeader>
+            <CardTitle className="text-yellow-700 dark:text-yellow-400">⚠️ Agent Setup Required</CardTitle>
+            <CardDescription>
+              Your user account needs to be set up as an agent first.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm">
+              It looks like your account isn't registered as an agent yet. This might be because:
+            </p>
+            <ul className="text-sm list-disc list-inside space-y-1 ml-4">
+              <li>You're using a new Clerk account</li>
+              <li>The agent record hasn't been created in Convex yet</li>
+            </ul>
+            <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+              <p className="text-sm font-medium mb-2">Quick Fix:</p>
+              <ol className="text-sm list-decimal list-inside space-y-1 ml-2">
+                <li>Go to the Convex Dashboard</li>
+                <li>Open the <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">agents</code> table</li>
+                <li>Add a new row with:
+                  <ul className="list-disc list-inside ml-4 mt-1">
+                    <li><strong>clerkUserId:</strong> {user?.id || 'your_clerk_user_id'}</li>
+                    <li><strong>name:</strong> {user?.fullName || 'Your Name'}</li>
+                    <li><strong>email:</strong> {user?.emailAddresses?.[0]?.emailAddress || 'your@email.com'}</li>
+                    <li><strong>phoneNumber:</strong> (555) 123-4567</li>
+                    <li><strong>isActive:</strong> true</li>
+                  </ul>
+                </li>
+                <li>Refresh this page</li>
+              </ol>
+            </div>
+            <Link href="/dashboard">
+              <Button variant="outline">← Back to Dashboard</Button>
+            </Link>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Main Form */}
-      <Card>
+      {(agentsLoading || currentAgent) && (
+        <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
@@ -329,8 +374,10 @@ export default function NewListingPage() {
           </div>
         </CardContent>
       </Card>
+      )}
 
       {/* Action Buttons */}
+      {(agentsLoading || currentAgent) && (
       <div className="flex items-center justify-between">
         <Link href="/dashboard/listings">
           <Button variant="outline">Cancel</Button>
@@ -357,6 +404,7 @@ export default function NewListingPage() {
         <p className="text-sm text-yellow-600 dark:text-yellow-400 text-center">
           💡 Tip: Street View photos will be generated automatically when you click "Analyze with AI"
         </p>
+      )}
       )}
     </div>
   );
