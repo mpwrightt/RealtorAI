@@ -98,6 +98,87 @@ Transformation Requirements:
 Style: Professional real estate photography, warm natural light, inviting backyard atmosphere, sharp details.`;
   }
 
+  /**
+   * Create a professional real estate photo by synthesizing multiple Street View angles
+   * @param imageDataArray - Array of base64 image data from different angles
+   * @param propertyDescription - Description of the property
+   * @returns Base64 string of synthesized professional photo
+   */
+  async synthesizePropertyPhoto(
+    imageDataArray: Array<{ data: string; mimeType: string; angle: string }>,
+    propertyDescription: string
+  ): Promise<string> {
+    const model = this.client.getGenerativeModel({ 
+      model: this.imageModel,
+      generationConfig: {
+        temperature: 0.4, // Balanced creativity and accuracy
+        topP: 0.95,
+        topK: 40,
+      },
+    });
+
+    const prompt = `You are a professional real estate photographer. You have been given multiple Street View photos of a property from different angles.
+
+IMPORTANT: Create ONE professional, magazine-quality real estate listing photograph of this property's exterior.
+
+Property: ${propertyDescription}
+
+You have ${imageDataArray.length} reference photos from different angles. Use ALL of them to understand:
+- The complete architecture and style of the house
+- Colors, materials, and design details
+- Landscaping and outdoor features
+- Property layout and surroundings
+
+Your Task:
+- Synthesize information from ALL angles to create the BEST possible front exterior shot
+- Show the house from the most flattering angle (typically front-angled view)
+- Professional real estate photography composition and lighting
+- Golden hour lighting (warm, inviting, soft shadows)
+- Remove distractions: cars, power lines, street clutter, utility boxes
+- Keep the house architecture 100% ACCURATE - no fake features
+- Maintain accurate: windows, doors, roof, colors, siding, landscaping
+- Clean, well-maintained appearance
+- Professional depth of field (slight background blur)
+- Make it look like a \$5,000 professional real estate photoshoot
+
+Style: High-end real estate photography, golden hour lighting, magazine quality, inviting and aspirational.
+
+CRITICAL: Keep all architectural details accurate. Only remove cars, wires, clutter. Don't add fake features.`;
+
+    try {
+      // Build the content array with prompt + all images
+      const contentParts: any[] = [prompt];
+      
+      imageDataArray.forEach((img, idx) => {
+        contentParts.push({
+          inlineData: {
+            mimeType: img.mimeType,
+            data: img.data,
+          },
+        });
+      });
+
+      const result = await model.generateContent(contentParts);
+      const response = await result.response;
+      
+      // Check if response contains generated image
+      if (response.candidates && response.candidates[0]?.content?.parts) {
+        for (const part of response.candidates[0].content.parts) {
+          if (part.inlineData) {
+            console.log('✅ Professional property photo synthesized from multiple angles');
+            return part.inlineData.data;
+          }
+        }
+      }
+      
+      console.warn('⚠️ No synthesized image in response, returning first source image');
+      return imageDataArray[0].data; // Fallback to first image
+    } catch (error) {
+      console.error('Error synthesizing property photo:', error);
+      return imageDataArray[0].data; // Fallback on error
+    }
+  }
+
   async analyzePropertyPhoto(
     imageData: string,
     mimeType: string = 'image/jpeg'

@@ -334,3 +334,83 @@ export const enhanceSatelliteImage = action({
     }
   },
 });
+
+// Synthesize one professional photo from multiple Street View angles
+export const synthesizePropertyPhoto = action({
+  args: {
+    imageUrls: v.array(v.object({
+      url: v.string(),
+      angle: v.string(),
+    })),
+    propertyDescription: v.string(),
+  },
+  handler: async (ctx, args): Promise<{
+    success: boolean;
+    storageId?: string;
+    error?: string;
+  }> => {
+    try {
+      console.log(`📸 Synthesizing professional photo from ${args.imageUrls.length} Street View angles...`);
+      
+      // Fetch all images and convert to base64
+      const imageData: Array<{ data: string; mimeType: string; angle: string }> = [];
+      
+      for (const img of args.imageUrls) {
+        try {
+          const response = await fetch(img.url);
+          if (!response.ok) continue;
+          
+          const buffer = await response.arrayBuffer();
+          const base64 = Buffer.from(buffer).toString('base64');
+          const mimeType = response.headers.get('content-type') || 'image/jpeg';
+          
+          imageData.push({
+            data: base64,
+            mimeType,
+            angle: img.angle,
+          });
+          
+          console.log(`  ✓ Fetched ${img.angle}`);
+        } catch (error) {
+          console.warn(`  ⚠️ Failed to fetch ${img.angle}, skipping...`);
+        }
+      }
+      
+      if (imageData.length === 0) {
+        return { success: false, error: 'No images could be fetched' };
+      }
+      
+      console.log(`🎨 Creating professional real estate photo from ${imageData.length} angles...`);
+      
+      // Initialize Gemini client
+      const { createGeminiClient } = await import('../lib/gemini/client');
+      const gemini = createGeminiClient();
+      
+      // Synthesize professional photo
+      const synthesizedBase64 = await gemini.synthesizePropertyPhoto(
+        imageData,
+        args.propertyDescription
+      );
+      
+      // Upload to storage
+      const blob = Buffer.from(synthesizedBase64, 'base64');
+      const storageId = await ctx.storage.store(
+        new Blob([blob], { type: 'image/jpeg' }) as any
+      );
+      
+      console.log('✅ Professional photo synthesized and uploaded:', storageId);
+      
+      return {
+        success: true,
+        storageId,
+      };
+      
+    } catch (error: any) {
+      console.error('❌ Error synthesizing property photo:', error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  },
+});

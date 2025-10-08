@@ -206,26 +206,52 @@ export const fetchAndEnhanceStreetView = action({
 
       const uploadedPhotos: string[] = [];
       
-      // Step 1: Use AI to select best Street View angles
-      console.log(`🔍 Analyzing ${imageData.streetViews.length} Street View angles with object detection...`);
-      const { selectBestAngles } = await import('../lib/object-detection');
-      const bestAngles = await selectBestAngles(imageData.streetViews, 2); // Select top 2
+      // Check which mode to use for Street View processing
+      const streetViewMode = process.env.STREET_VIEW_MODE || 'synthesize';
       
-      console.log(`🎨 Enhancing ${bestAngles.length} best Street View angles...`);
-      
-      // Step 2: Only enhance the best angles (cost savings!)
-      for (const view of bestAngles) {
+      if (streetViewMode === 'synthesize') {
+        // MODE 1: Synthesize multiple angles into ONE professional photo
+        console.log(`📸 Synthesizing ONE professional photo from ${imageData.streetViews.length} Street View angles...`);
+        
         try {
-          console.log(`  - ${view.description} (score: ${view.score}, confidence: ${view.detection.confidence.toFixed(2)})`);
-          const result = await ctx.runAction(api.gemini.enhanceStreetViewImage, {
-            imageUrl: view.url,
+          const result = await ctx.runAction(api.gemini.synthesizePropertyPhoto, {
+            imageUrls: imageData.streetViews.map(view => ({
+              url: view.url,
+              angle: view.description,
+            })),
+            propertyDescription: `Property at coordinates ${args.lat}, ${args.lng}`,
           });
           
           if (result.success && result.storageId) {
             uploadedPhotos.push(result.storageId);
+            console.log('✅ Professional real estate photo created from multiple angles');
           }
         } catch (error) {
-          console.warn(`  ⚠️ Failed to enhance ${view.description}, skipping...`);
+          console.warn('⚠️ Synthesis failed, falling back to enhancement mode...');
+          // Fall back to enhancement mode if synthesis fails
+        }
+        
+      } else {
+        // MODE 2: Enhance best angles individually (original approach)
+        console.log(`🔍 Analyzing ${imageData.streetViews.length} Street View angles with object detection...`);
+        const { selectBestAngles } = await import('../lib/object-detection');
+        const bestAngles = await selectBestAngles(imageData.streetViews, 2); // Select top 2
+        
+        console.log(`🎨 Enhancing ${bestAngles.length} best Street View angles...`);
+        
+        for (const view of bestAngles) {
+          try {
+            console.log(`  - ${view.description} (score: ${view.score}, confidence: ${view.detection.confidence.toFixed(2)})`);
+            const result = await ctx.runAction(api.gemini.enhanceStreetViewImage, {
+              imageUrl: view.url,
+            });
+            
+            if (result.success && result.storageId) {
+              uploadedPhotos.push(result.storageId);
+            }
+          } catch (error) {
+            console.warn(`  ⚠️ Failed to enhance ${view.description}, skipping...`);
+          }
         }
       }
       
