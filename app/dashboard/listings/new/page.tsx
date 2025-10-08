@@ -86,7 +86,18 @@ export default function NewListingPage() {
   };
 
   const handleAnalyze = async () => {
-    if (!canSubmit || !currentAgent) return;
+    if (!canSubmit || !currentAgent) {
+      console.log('❌ Cannot submit:', { canSubmit, hasAgent: !!currentAgent });
+      return;
+    }
+
+    console.log('🚀 Starting listing analysis...', {
+      address: address?.formatted,
+      price,
+      streetViewPhotos: streetViewPhotos.length,
+      uploadedPhotos: photos.length,
+      totalPhotos: streetViewPhotos.length + photos.length,
+    });
 
     setError(null);
     setStep('processing');
@@ -94,7 +105,9 @@ export default function NewListingPage() {
     try {
       // Step 1: Create draft
       updateStepStatus(0, 'processing');
+      console.log('📝 Creating draft for agent:', currentAgent._id);
       const newDraftId = await createDraft({ agentId: currentAgent._id });
+      console.log('✅ Draft created:', newDraftId);
       setDraftId(newDraftId);
 
       // Step 2: Update address
@@ -116,12 +129,16 @@ export default function NewListingPage() {
 
       // Step 4: Add photos (Street View + uploaded)
       const allPhotos = [...streetViewPhotos, ...photos];
+      console.log('📸 Adding photos:', allPhotos.length, 'total');
       
       if (allPhotos.length > 0) {
         await addPhotos({
           draftId: newDraftId,
           photoIds: allPhotos,
         });
+        console.log('✅ Photos added to draft');
+      } else {
+        console.log('⚠️ No photos to add - proceeding with minimal analysis');
       }
 
       // Step 5: Run AI analysis
@@ -130,7 +147,9 @@ export default function NewListingPage() {
       updateStepStatus(3, 'processing');
       updateStepStatus(4, 'processing');
 
+      console.log('🤖 Running AI analysis...');
       const result = await analyzeDraft({ draftId: newDraftId });
+      console.log('✅ AI analysis complete:', result);
 
       updateStepStatus(1, 'complete');
       updateStepStatus(2, 'complete');
@@ -138,6 +157,7 @@ export default function NewListingPage() {
       updateStepStatus(4, 'complete');
 
       // Navigate to review page
+      console.log('🎉 Navigating to review page...');
       setTimeout(() => {
         router.push(`/dashboard/listings/new/review?draftId=${newDraftId}`);
       }, 1000);
