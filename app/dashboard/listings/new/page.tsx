@@ -397,33 +397,35 @@ export default function NewListingPage() {
 
       {/* Action Buttons */}
       {(agentsLoading || currentAgent) && (
-      <div className="flex items-center justify-between">
-        <Link href="/dashboard/listings">
-          <Button variant="outline">Cancel</Button>
-        </Link>
-        <Button
-          onClick={handleAnalyze}
-          disabled={!canSubmit}
-          size="lg"
-          className="gap-2"
-        >
-          <Sparkles className="h-4 w-4" />
-          Analyze with AI
-        </Button>
-      </div>
+        <>
+          <div className="flex items-center justify-between">
+            <Link href="/dashboard/listings">
+              <Button variant="outline">Cancel</Button>
+            </Link>
+            <Button
+              onClick={handleAnalyze}
+              disabled={!canSubmit}
+              size="lg"
+              className="gap-2"
+            >
+              <Sparkles className="h-4 w-4" />
+              Analyze with AI
+            </Button>
+          </div>
 
-      {!canSubmit && (
-        <p className="text-sm text-muted-foreground text-center">
-          Please provide address and price to continue
-          {streetViewPhotos.length > 0 && ' (photos added automatically)'}
-        </p>
-      )}
-      
-      {canSubmit && photos.length === 0 && streetViewPhotos.length === 0 && (
-        <p className="text-sm text-yellow-600 dark:text-yellow-400 text-center">
-          💡 Tip: Street View photos will be generated automatically when you click "Analyze with AI"
-        </p>
-      )}
+          {!canSubmit && (
+            <p className="text-sm text-muted-foreground text-center">
+              Please provide address and price to continue
+              {streetViewPhotos.length > 0 && ' (photos added automatically)'}
+            </p>
+          )}
+          
+          {canSubmit && photos.length === 0 && streetViewPhotos.length === 0 && (
+            <p className="text-sm text-yellow-600 dark:text-yellow-400 text-center">
+              💡 Tip: Street View photos will be generated automatically when you click "Analyze with AI"
+            </p>
+          )}
+        </>
       )}
     </div>
   );
