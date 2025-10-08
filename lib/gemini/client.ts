@@ -51,6 +51,53 @@ export class GeminiClient {
     this.imageModel = process.env.GOOGLE_IMAGE_MODEL || 'gemini-2.5-flash-image';
   }
 
+  /**
+   * Get prompt for aerial/satellite view enhancement (keeps aerial perspective)
+   */
+  private getAerialEnhancementPrompt(propertyDescription: string): string {
+    return `You are a professional real estate photographer enhancing aerial property photos.
+
+IMPORTANT: Enhance this satellite/aerial property image to make it more appealing for real estate marketing.
+
+Property: ${propertyDescription}
+
+Enhancement Requirements:
+- KEEP the aerial/bird's-eye perspective (do NOT change to ground level)
+- Improve image clarity, sharpness, and color vibrancy
+- Enhance the visibility of property features (house, yard, landscaping, pool, etc.)
+- Make the image look professionally captured with a drone
+- Bring out the details of the roof, driveway, backyard layout
+- Optimize lighting and contrast for real estate photography
+- Keep all features accurate and realistic - no fake additions
+- Professional aerial real estate photography style
+
+Style: High-quality drone photography, vibrant colors, crisp details, professional composition.`;
+  }
+
+  /**
+   * Get prompt for ground-level transformation (experimental)
+   */
+  private getGroundLevelTransformPrompt(propertyDescription: string): string {
+    return `You are an AI that creates realistic ground-level property photography from aerial views.
+
+IMPORTANT: Transform this satellite/aerial view into a realistic ground-level photograph of the backyard.
+
+Property: ${propertyDescription}
+
+Transformation Requirements:
+- Convert the bird's-eye aerial view to a standing ground-level perspective (5-6 feet height)
+- Show the backyard from someone standing in the yard looking toward the house
+- Maintain accurate layout: if the aerial shows a pool, deck, or patio, show them from ground level
+- Use the aerial image to understand the property layout, then imagine what it looks like from the ground
+- Professional real estate photography quality with proper depth and perspective
+- Natural outdoor lighting (sunny day, soft shadows, golden hour feel)
+- Show the house in the background if visible in the aerial view
+- Include all visible features: landscaping, trees, fencing, outdoor furniture
+- Photorealistic rendering - must look like a real photograph, not AI-generated
+
+Style: Professional real estate photography, warm natural light, inviting backyard atmosphere, sharp details.`;
+  }
+
   async analyzePropertyPhoto(
     imageData: string,
     mimeType: string = 'image/jpeg'
@@ -216,42 +263,25 @@ Style: Professional real estate photography, golden hour lighting, clear blue sk
     }
   }
 
-  // Transform satellite view to ground-level backyard shot
+  // Transform satellite view to ground-level backyard shot OR enhance aerial view
   async satelliteToGroundLevel(
     satelliteImageData: string,
     propertyDescription: string,
-    mimeType: string = 'image/jpeg'
+    mimeType: string = 'image/jpeg',
+    enhancementMode: 'ground-level' | 'aerial-enhance' = 'aerial-enhance'
   ): Promise<string> {
     const model = this.client.getGenerativeModel({ 
       model: this.imageModel,
       generationConfig: {
-        temperature: 0.6,
+        temperature: enhancementMode === 'aerial-enhance' ? 0.3 : 0.6, // Lower temp for enhancement
         topP: 0.95,
         topK: 40,
       },
     });
 
-    const prompt = `You are an AI that creates realistic ground-level property photography from aerial/satellite views.
-
-IMPORTANT: Generate a NEW ground-level photograph of this property's backyard.
-
-Based on this satellite/aerial view, create a realistic ground-level photo showing:
-
-Property Context: ${propertyDescription}
-
-Transformation requirements:
-- Convert the bird's-eye aerial perspective to a standing ground-level view
-- Show the backyard from a natural human eye height (about 5-6 feet)
-- Include all visible features: pools, decks, patios, landscaping, trees, fencing
-- Maintain accurate property layout and features from the satellite image
-- Professional real estate photography quality
-- Natural outdoor lighting (sunny day, soft shadows)
-- Realistic depth and perspective
-- Show the house/building in the background if visible
-- Make it look like a professional photographer standing in the yard
-- Photorealistic rendering - no fake or cartoonish elements
-
-Style: High-end real estate photography, warm natural light, inviting backyard atmosphere, clear and sharp details, professionally composed.`;
+    const prompt = enhancementMode === 'aerial-enhance'
+      ? this.getAerialEnhancementPrompt(propertyDescription)
+      : this.getGroundLevelTransformPrompt(propertyDescription);
 
     try {
       const result = await model.generateContent([

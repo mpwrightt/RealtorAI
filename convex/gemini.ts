@@ -283,11 +283,16 @@ export const enhanceSatelliteImage = action({
       const { createGeminiClient } = await import('../lib/gemini/client');
       const gemini = createGeminiClient();
       
-      // Transform satellite to ground-level using the base64 data
+      // Enhancement mode: 'aerial-enhance' keeps aerial view, 'ground-level' transforms perspective
+      const mode = process.env.SATELLITE_ENHANCEMENT_MODE === 'ground-level' ? 'ground-level' : 'aerial-enhance';
+      console.log(`Using satellite enhancement mode: ${mode}`);
+      
+      // Transform/enhance satellite image using the base64 data
       const enhancedBase64 = await gemini.satelliteToGroundLevel(
         base64Image,
         args.propertyDescription,
-        mimeType
+        mimeType,
+        mode as 'aerial-enhance' | 'ground-level'
       );
       
       // Upload enhanced image to storage

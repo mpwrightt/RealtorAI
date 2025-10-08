@@ -109,33 +109,65 @@ Score = Base (40) + Confidence (40) + Size (20)
 - Warm, inviting atmosphere
 - **Maintains** original composition (ethical)
 
-### 2. Satellite-to-Ground Transformation
+### 2. Satellite/Aerial Image Enhancement
 
-**Input:** Google Earth satellite view of property
+**Two Modes Available:**
+
+#### Mode 1: Aerial Enhancement (Default - Recommended)
 ```
 ┌─────────────────────┐
 │  Satellite View     │
 │  (Bird's eye)       │
-│  Shows: Pool, deck, │
-│  yard layout        │
+│  Low quality, dull  │
 └─────────────────────┘
          ↓
-    Imagen 3.0 Transformation
+    Gemini Enhancement
+         ↓
+┌─────────────────────┐
+│  Enhanced Aerial    │
+│  (Still bird's eye) │
+│  Sharp, vibrant,    │
+│  professional drone │
+└─────────────────────┘
+```
+
+**What it does:**
+- KEEPS the aerial/bird's-eye perspective
+- Enhances clarity, sharpness, and color
+- Makes it look like professional drone photography
+- Most accurate - no perspective transformation
+- Best for showing property layout from above
+
+#### Mode 2: Ground-Level Transformation (Experimental)
+```
+┌─────────────────────┐
+│  Satellite View     │
+│  (Bird's eye)       │
+│  Shows: Pool, deck  │
+└─────────────────────┘
+         ↓
+    Perspective Transform
          ↓
 ┌─────────────────────┐
 │  Ground-Level Shot  │
 │  (Standing in yard) │
 │  Shows: Backyard    │
-│  from ground view   │
 └─────────────────────┘
 ```
 
-**Transformation:**
-- Converts aerial perspective to ground level
-- Generates realistic backyard view
-- Shows pools, decks, landscaping from standing height
-- Professional photography quality
-- Natural lighting and shadows
+**What it does:**
+- Converts aerial to ground-level view
+- Shows backyard from standing height
+- More creative, but may be less accurate
+- Experimental AI transformation
+
+**How to Switch Modes:**
+```bash
+# In .env.local
+SATELLITE_ENHANCEMENT_MODE=aerial-enhance  # Default, recommended
+# OR
+SATELLITE_ENHANCEMENT_MODE=ground-level     # Experimental
+```
 
 ## Setup (Already Complete!)
 

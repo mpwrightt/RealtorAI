@@ -229,10 +229,13 @@ export const fetchAndEnhanceStreetView = action({
         }
       }
       
-      // Enhance satellite view to ground-level backyard
+      // Enhance satellite/aerial view
       if (imageData.satellite) {
         try {
-          console.log('🛰️ Transforming satellite view to ground-level backyard...');
+          const mode = process.env.SATELLITE_ENHANCEMENT_MODE || 'aerial-enhance';
+          const action = mode === 'ground-level' ? 'Transforming to ground-level' : 'Enhancing aerial view';
+          console.log(`🛰️ ${action} of property...`);
+          
           const satelliteResult = await ctx.runAction(api.gemini.enhanceSatelliteImage, {
             imageUrl: imageData.satellite,
             propertyDescription: `Property at coordinates ${args.lat}, ${args.lng}`,
@@ -240,10 +243,10 @@ export const fetchAndEnhanceStreetView = action({
           
           if (satelliteResult.success && satelliteResult.storageId) {
             uploadedPhotos.push(satelliteResult.storageId);
-            console.log('✅ Satellite view transformed successfully');
+            console.log(`✅ Satellite image ${mode === 'ground-level' ? 'transformed' : 'enhanced'} successfully`);
           }
         } catch (error) {
-          console.warn('⚠️ Satellite transformation failed, skipping...');
+          console.warn('⚠️ Satellite enhancement failed, skipping...');
         }
       }
 
