@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { api } from "./_generated/api";
 
 export const trackPropertyView = mutation({
   args: {
@@ -22,6 +23,16 @@ export const trackPropertyView = mutation({
       sectionsVisited: args.sectionsVisited,
       timestamp: Date.now(),
     });
+
+    // If this is a buyer viewing, schedule AI match score calculation
+    if (args.buyerSessionId) {
+      console.log('🔄 Scheduling AI match score calculation for buyer view');
+      await ctx.scheduler.runAfter(0, api.matchScoring.calculateAndStoreMatchScore, {
+        viewId,
+        buyerSessionId: args.buyerSessionId,
+        listingId: args.listingId,
+      });
+    }
 
     return { viewId };
   },

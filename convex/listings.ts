@@ -249,3 +249,214 @@ export const getMultipleListings = query({
     return listings.filter((l) => l !== null);
   },
 });
+
+// Get comprehensive listing details with analytics
+export const getListingWithAnalytics = query({
+  args: { listingId: v.id("listings") },
+  handler: async (ctx, args) => {
+    const listing = await ctx.db.get(args.listingId);
+    if (!listing) return null;
+
+    // Get view analytics
+    const views = await ctx.db
+      .query("propertyViews")
+      .withIndex("byListingId", (q) => q.eq("listingId", args.listingId))
+      .collect();
+
+    // Get unique viewers
+    const uniqueViewers = new Set(
+      views.map((v) => v.buyerSessionId).filter((id) => id !== undefined)
+    ).size;
+
+    // Get all offers
+    const offers = await ctx.db
+      .query("offers")
+      .withIndex("byListingId", (q) => q.eq("listingId", args.listingId))
+      .collect();
+
+    // Calculate days on market
+    const daysOnMarket = Math.floor(
+      (Date.now() - listing.createdAt) / (1000 * 60 * 60 * 24)
+    );
+
+    return {
+      listing,
+      analytics: {
+        totalViews: views.length,
+        uniqueViewers,
+        avgViewDuration:
+          views.length > 0
+            ? views.reduce((sum, v) => sum + v.viewDuration, 0) / views.length
+            : 0,
+        daysOnMarket,
+      },
+      offers: {
+        total: offers.length,
+        pending: offers.filter((o) => o.status === "pending").length,
+        accepted: offers.filter((o) => o.status === "accepted").length,
+        rejected: offers.filter((o) => o.status === "rejected").length,
+      },
+    };
+  },
+});
+
+// Get all buyers who viewed this listing with engagement details
+export const getListingBuyerActivity = query({
+  args: { listingId: v.id("listings") },
+  handler: async (ctx, args) => {
+    const views = await ctx.db
+      .query("propertyViews")
+      .withIndex("byListingId", (q) => q.eq("listingId", args.listingId))
+      .collect();
+
+    // Group by buyer session
+    const buyerViews = new Map<Id<"buyerSessions">, any>();
+    
+    for (const view of views) {
+      if (!view.buyerSessionId) continue;
+      
+      if (!buyerViews.has(view.buyerSessionId)) {
+        const session = await ctx.db.get(view.buyerSessionId);
+        if (!session) continue;
+        
+        // Use AI match score if available, otherwise calculate simple score
+        const listing = await ctx.db.get(args.listingId);
+        let matchScore = 70; // default
+        
+        if (view.aiMatchScore) {
+          matchScore = view.aiMatchScore.score;
+        } else if (listing) {
+          // Fallback: Simple calculation based on preferences
+          const prefs = session.preferences;
+          matchScore = 100;
+          
+          if (prefs.minPrice && listing.price < prefs.minPrice) matchScore -= 20;
+          if (prefs.maxPrice && listing.price > prefs.maxPrice) matchScore -= 20;
+          if (prefs.bedrooms && listing.bedrooms < prefs.bedrooms) matchScore -= 15;
+          if (prefs.bathrooms && listing.bathrooms < prefs.bathrooms) matchScore -= 15;
+          matchScore = Math.max(0, matchScore);
+        }
+        
+        buyerViews.set(view.buyerSessionId, {
+          session,
+          viewCount: 0,
+          totalTime: 0,
+          lastViewed: 0,
+          engagementScore: 0,
+          matchScore,
+          aiMatchData: view.aiMatchScore,
+        });
+      }
+      
+      const buyer = buyerViews.get(view.buyerSessionId)!;
+      buyer.viewCount += 1;
+      buyer.totalTime += view.viewDuration;
+      buyer.lastViewed = Math.max(buyer.lastViewed, view.timestamp);
+      
+      // Update match score if this view has a newer AI calculation
+      if (view.aiMatchScore && 
+          (!buyer.aiMatchData || view.aiMatchScore.calculatedAt > buyer.aiMatchData.calculatedAt)) {
+        buyer.matchScore = view.aiMatchScore.score;
+        buyer.aiMatchData = view.aiMatchScore;
+      }
+    }
+
+    // Calculate engagement scores
+    return Array.from(buyerViews.values()).map((buyer) => ({
+      ...buyer,
+      engagementScore: Math.min(
+        100,
+        Math.round((buyer.viewCount * 10) + (buyer.totalTime / 60))
+      ),
+    })).sort((a, b) => b.engagementScore - a.engagementScore);
+  },
+});
+
+// Get activity timeline for listing
+export const getListingEngagementTimeline = query({
+  args: {
+    listingId: v.id("listings"),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const limit = args.limit || 50;
+
+    // Get views
+    const views = await ctx.db
+      .query("propertyViews")
+      .withIndex("byListingId", (q) => q.eq("listingId", args.listingId))
+      .collect();
+
+    // Get offers
+    const offers = await ctx.db
+      .query("offers")
+      .withIndex("byListingId", (q) => q.eq("listingId", args.listingId))
+      .collect();
+
+    // Combine into timeline
+    const timeline: any[] = [];
+
+    for (const view of views) {
+      let buyerName = "Anonymous";
+      if (view.buyerSessionId) {
+        const session = await ctx.db.get(view.buyerSessionId);
+        if (session) buyerName = session.buyerName;
+      }
+
+      timeline.push({
+        type: "view",
+        timestamp: view.timestamp,
+        buyerName,
+        duration: view.viewDuration,
+        imagesViewed: view.imagesViewed.length,
+      });
+    }
+
+    for (const offer of offers) {
+      const session = await ctx.db.get(offer.buyerSessionId);
+      
+      timeline.push({
+        type: "offer",
+        timestamp: offer.createdAt,
+        buyerName: session?.buyerName || "Unknown",
+        amount: offer.offerAmount,
+        status: offer.status,
+      });
+    }
+
+    return timeline
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .slice(0, limit);
+  },
+});
+
+// Get connected sessions (seller and buyers)
+export const getListingConnectedSessions = query({
+  args: { listingId: v.id("listings") },
+  handler: async (ctx, args) => {
+    // Get seller session
+    const sellerSession = await ctx.db
+      .query("sellerSessions")
+      .withIndex("byListingId", (q) => q.eq("listingId", args.listingId))
+      .unique();
+
+    // Get buyer sessions that viewed this property
+    const views = await ctx.db
+      .query("propertyViews")
+      .withIndex("byListingId", (q) => q.eq("listingId", args.listingId))
+      .collect();
+
+    const buyerSessionIds = new Set(
+      views.map((v) => v.buyerSessionId).filter((id) => id !== undefined)
+    );
+
+    const buyerSessions = await Promise.all(
+      Array.from(buyerSessionIds).map((id) => ctx.db.get(id!))
+    );
+
+    return {
+      sellerSession,
+      buyerSessions: buyerSessions.filter((s) => s !== null),
+    };
+  },
+});

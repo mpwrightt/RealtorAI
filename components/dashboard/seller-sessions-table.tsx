@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Copy, ExternalLink, MoreHorizontal, Trash, Check } from "lucide-react";
+import { Copy, ExternalLink, MoreHorizontal, Trash, Check, Eye } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -87,14 +87,28 @@ export default function SellerSessionsTable({ sessions }: { sessions: any[] }) {
           </TableHeader>
           <TableBody>
             {sessions.map((session) => (
-              <TableRow key={session._id}>
+              <TableRow 
+                key={session._id}
+                className="cursor-pointer hover:bg-muted/50"
+                onClick={() => window.location.href = `/dashboard/sellers/${session._id}`}
+              >
                 <TableCell className="font-medium">
-                  {session.sellerName}
+                  <Link 
+                    href={`/dashboard/sellers/${session._id}`}
+                    className="hover:underline"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {session.sellerName}
+                  </Link>
                 </TableCell>
                 <TableCell>
-                  <div className="max-w-[200px] truncate">
+                  <Link 
+                    href={`/dashboard/listings/${session.listing?._id}`}
+                    className="max-w-[200px] truncate hover:underline block"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     {session.listing?.address || 'N/A'}
-                  </div>
+                  </Link>
                   <div className="text-xs text-muted-foreground">
                     {session.listing?.city}, {session.listing?.state}
                   </div>
@@ -114,7 +128,10 @@ export default function SellerSessionsTable({ sessions }: { sessions: any[] }) {
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right">
-                  <div className="flex items-center justify-end gap-2">
+                  <div 
+                    className="flex items-center justify-end gap-2"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <Button
                       variant="ghost"
                       size="sm"
@@ -138,6 +155,12 @@ export default function SellerSessionsTable({ sessions }: { sessions: any[] }) {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem asChild>
+                          <Link href={`/dashboard/sellers/${session._id}`}>
+                            <Eye className="h-4 w-4 mr-2" />
+                            View Details
+                          </Link>
+                        </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => copyPortalLink(session.sessionCode, session._id)}
                         >

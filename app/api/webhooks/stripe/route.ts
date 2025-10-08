@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
     switch (event.type) {
       case "payment_intent.succeeded": {
         const paymentIntent = event.data.object as Stripe.PaymentIntent;
-        await fetchMutation(api.payments.updatePaymentStatus, {
+        await fetchMutation(api.paymentsDb.updatePaymentStatus, {
           stripePaymentIntentId: paymentIntent.id,
           status: "succeeded",
           stripeChargeId: typeof paymentIntent.latest_charge === "string" ? paymentIntent.latest_charge : undefined,
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
       }
       case "payment_intent.payment_failed": {
         const paymentIntent = event.data.object as Stripe.PaymentIntent;
-        await fetchMutation(api.payments.updatePaymentStatus, {
+        await fetchMutation(api.paymentsDb.updatePaymentStatus, {
           stripePaymentIntentId: paymentIntent.id,
           status: "failed",
         });
@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
       case "charge.refunded": {
         const charge = event.data.object as Stripe.Charge;
         if (charge.payment_intent && typeof charge.payment_intent === "string") {
-          await fetchMutation(api.payments.updatePaymentStatus, {
+          await fetchMutation(api.paymentsDb.updatePaymentStatus, {
             stripePaymentIntentId: charge.payment_intent,
             status: "refunded",
             stripeChargeId: charge.id,

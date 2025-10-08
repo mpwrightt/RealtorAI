@@ -81,9 +81,19 @@ export default function ListingsTable({ listings }: ListingsTableProps) {
           </TableHeader>
           <TableBody>
             {listings.map((listing) => (
-              <TableRow key={listing._id}>
+              <TableRow 
+                key={listing._id}
+                className="cursor-pointer hover:bg-muted/50"
+                onClick={() => window.location.href = `/dashboard/listings/${listing._id}`}
+              >
                 <TableCell className="font-medium">
-                  {listing.address}
+                  <Link 
+                    href={`/dashboard/listings/${listing._id}`}
+                    className="hover:underline"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {listing.address}
+                  </Link>
                 </TableCell>
                 <TableCell>
                   {listing.city}, {listing.state}
@@ -99,7 +109,7 @@ export default function ListingsTable({ listings }: ListingsTableProps) {
                     {listing.status.charAt(0).toUpperCase() + listing.status.slice(1)}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-right">
+                <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon">
@@ -107,9 +117,11 @@ export default function ListingsTable({ listings }: ListingsTableProps) {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem>
-                        <Eye className="h-4 w-4 mr-2" />
-                        View
+                      <DropdownMenuItem asChild>
+                        <Link href={`/dashboard/listings/${listing._id}`}>
+                          <Eye className="h-4 w-4 mr-2" />
+                          View Details
+                        </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem>
                         <Edit className="h-4 w-4 mr-2" />

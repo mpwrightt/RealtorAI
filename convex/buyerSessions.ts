@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalQuery } from "./_generated/server";
 import { nanoid } from "nanoid";
 
 export const createBuyerSession = mutation({
@@ -255,5 +255,102 @@ export const getMatchingListings = query({
     });
 
     return scoredListings.sort((a, b) => b.matchScore - a.matchScore);
+  },
+});
+
+// Get buyer's property view history with engagement details
+export const getBuyerViewHistory = query({
+  args: { sessionId: v.id("buyerSessions") },
+  handler: async (ctx, args) => {
+    const session = await ctx.db.get(args.sessionId);
+    if (!session) throw new Error("Session not found");
+
+    // Get all views by this buyer
+    const views = await ctx.db
+      .query("propertyViews")
+      .withIndex("byBuyerSessionId", (q) => 
+        q.eq("buyerSessionId", args.sessionId)
+      )
+      .collect();
+
+    // Group by listing
+    const listingViews = new Map<string, any>();
+    
+    for (const view of views) {
+      if (!listingViews.has(view.listingId)) {
+        const listing = await ctx.db.get(view.listingId);
+        if (!listing) continue;
+        
+        // Use AI match score if available, otherwise calculate simple score
+        let matchScore = 70; // default
+        
+        if (view.aiMatchScore) {
+          matchScore = view.aiMatchScore.score;
+        } else {
+          // Fallback: Simple calculation based on preferences
+          const prefs = session.preferences;
+          matchScore = 100;
+          
+          if (prefs.minPrice && listing.price < prefs.minPrice) matchScore -= 20;
+          if (prefs.maxPrice && listing.price > prefs.maxPrice) matchScore -= 20;
+          if (prefs.bedrooms && listing.bedrooms < prefs.bedrooms) matchScore -= 15;
+          if (prefs.bathrooms && listing.bathrooms < prefs.bathrooms) matchScore -= 15;
+          matchScore = Math.max(0, matchScore);
+        }
+        
+        listingViews.set(view.listingId, {
+          listing,
+          viewCount: 0,
+          totalTime: 0,
+          lastViewed: 0,
+          avgImagesViewed: 0,
+          matchScore,
+          aiMatchData: view.aiMatchScore,
+        });
+      }
+      
+      const data = listingViews.get(view.listingId)!;
+      data.viewCount += 1;
+      data.totalTime += view.viewDuration;
+      data.lastViewed = Math.max(data.lastViewed, view.timestamp);
+      data.avgImagesViewed = Math.round(
+        (data.avgImagesViewed * (data.viewCount - 1) + view.imagesViewed.length) / data.viewCount
+      );
+      
+      // Update match score if this view has a newer AI calculation
+      if (view.aiMatchScore && 
+          (!data.aiMatchData || view.aiMatchScore.calculatedAt > data.aiMatchData.calculatedAt)) {
+        data.matchScore = view.aiMatchScore.score;
+        data.aiMatchData = view.aiMatchScore;
+      }
+    }
+
+    // Calculate engagement scores
+    return Array.from(listingViews.values())
+      .map((data) => ({
+        ...data,
+        engagementScore: Math.min(
+          100,
+          Math.round((data.viewCount * 15) + (data.totalTime / 120))
+        ),
+      }))
+      .sort((a, b) => b.engagementScore - a.engagementScore);
+  },
+});
+
+// Internal query to get buyer and listing data for match scoring
+export const getBuyerAndListingForMatch = internalQuery({
+  args: {
+    buyerSessionId: v.id("buyerSessions"),
+    listingId: v.id("listings"),
+  },
+  handler: async (ctx, args) => {
+    const buyer = await ctx.db.get(args.buyerSessionId);
+    const listing = await ctx.db.get(args.listingId);
+
+    return {
+      buyer,
+      listing,
+    };
   },
 });

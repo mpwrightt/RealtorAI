@@ -64,6 +64,11 @@ const navigation = [
     href: '/admin/demo',
     icon: IconSparkles,
   },
+  {
+    name: 'Seed Views',
+    href: '/admin/seed-views',
+    icon: IconSparkles,
+  },
 ];
 
 export function AdminLayout({ children }: AdminLayoutProps) {

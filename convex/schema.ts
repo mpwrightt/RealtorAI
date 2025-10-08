@@ -278,6 +278,18 @@ export default defineSchema({
       videosWatched: v.array(v.number()),
       sectionsVisited: v.array(v.string()),
       timestamp: v.number(),
+      aiMatchScore: v.optional(v.object({
+        score: v.number(),
+        breakdown: v.object({
+          price: v.number(),
+          location: v.number(),
+          propertyType: v.number(),
+          rooms: v.number(),
+          features: v.number(),
+        }),
+        reasoning: v.string(),
+        calculatedAt: v.number(),
+      })),
     })
       .index("byListingId", ["listingId"])
       .index("byBuyerSessionId", ["buyerSessionId"])

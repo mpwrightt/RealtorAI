@@ -8,6 +8,7 @@ import NeighborhoodSummarySectioned from "@/components/buyer/neighborhood-summar
 import MortgageCalculator from "@/components/buyer/mortgage-calculator";
 import EnhancedChatWidget from "@/components/ag-ui/enhanced-chat-widget";
 import FavoriteButton from "@/components/buyer/favorite-button";
+import PropertyViewTracker from "@/components/buyer/property-view-tracker";
 import { Button } from "@/components/ui/button";
 import { Share2, MapPin, FileText, Calendar } from "lucide-react";
 import { Id } from "@/convex/_generated/dataModel";
@@ -66,6 +67,12 @@ export default async function PropertyDetailPage({
   
   return (
     <div className="space-y-8">
+      {/* Track property view for analytics and AI match scoring */}
+      <PropertyViewTracker 
+        listingId={listingId as Id<"listings">}
+        buyerSessionId={session._id}
+      />
+      
       {/* Header Section */}
       <div className="flex items-start justify-between">
         <div className="space-y-2">

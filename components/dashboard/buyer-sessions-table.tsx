@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Copy, MoreHorizontal } from "lucide-react";
+import { ExternalLink, Copy, MoreHorizontal, Eye } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -77,9 +77,19 @@ export default function BuyerSessionsTable({ sessions }: BuyerSessionsTableProps
           </TableHeader>
           <TableBody>
             {sessions.map((session) => (
-              <TableRow key={session._id}>
+              <TableRow 
+                key={session._id}
+                className="cursor-pointer hover:bg-muted/50"
+                onClick={() => window.location.href = `/dashboard/buyers/${session._id}`}
+              >
                 <TableCell className="font-medium">
-                  {session.buyerName}
+                  <Link 
+                    href={`/dashboard/buyers/${session._id}`}
+                    className="hover:underline"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {session.buyerName}
+                  </Link>
                 </TableCell>
                 <TableCell>
                   <div className="text-sm">
@@ -112,7 +122,10 @@ export default function BuyerSessionsTable({ sessions }: BuyerSessionsTableProps
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right">
-                  <div className="flex items-center justify-end gap-2">
+                  <div 
+                    className="flex items-center justify-end gap-2"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <Button
                       variant="ghost"
                       size="icon"
@@ -132,6 +145,12 @@ export default function BuyerSessionsTable({ sessions }: BuyerSessionsTableProps
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem asChild>
+                          <Link href={`/dashboard/buyers/${session._id}`}>
+                            <Eye className="h-4 w-4 mr-2" />
+                            View Details
+                          </Link>
+                        </DropdownMenuItem>
                         <DropdownMenuItem>Edit Preferences</DropdownMenuItem>
                         <DropdownMenuItem>Send Properties</DropdownMenuItem>
                         <DropdownMenuItem>Deactivate</DropdownMenuItem>
