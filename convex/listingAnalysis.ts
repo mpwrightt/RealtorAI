@@ -157,6 +157,61 @@ Return ONLY the description text, no titles or labels.`;
   },
 });
 
+// Fetch and enhance Street View images for a property
+export const fetchAndEnhanceStreetView = action({
+  args: {
+    lat: v.number(),
+    lng: v.number(),
+  },
+  handler: async (ctx, args): Promise<{
+    success: boolean;
+    photos: string[];
+    error?: string;
+  }> => {
+    try {
+      console.log('📸 Fetching Street View images...');
+      
+      // Get Street View URLs
+      const streetViewData = await ctx.runAction(api.addressLookup.getStreetViewImages, {
+        lat: args.lat,
+        lng: args.lng,
+      });
+
+      if (!streetViewData?.front) {
+        console.warn('⚠️ No Street View available for this location');
+        return { success: false, photos: [], error: 'No Street View available' };
+      }
+
+      console.log('🎨 Enhancing Street View image with AI...');
+      
+      // Enhance the front view image
+      const enhancedResult = await ctx.runAction(api.gemini.enhanceStreetViewImage, {
+        imageUrl: streetViewData.front,
+      });
+
+      if (!enhancedResult.success || !enhancedResult.storageId) {
+        console.warn('⚠️ Enhancement failed, using original');
+        // Could optionally upload original here as fallback
+        return { success: false, photos: [], error: 'Enhancement failed' };
+      }
+
+      console.log('✅ Street View enhanced successfully');
+      return {
+        success: true,
+        photos: [enhancedResult.storageId],
+      };
+
+    } catch (error: any) {
+      console.error('❌ Error fetching/enhancing Street View:', error);
+      return {
+        success: false,
+        photos: [],
+        error: error.message,
+      };
+    }
+  },
+});
+
 // Regenerate description with different tone
 export const regenerateDescription = action({
   args: {

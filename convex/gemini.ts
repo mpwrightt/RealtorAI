@@ -2,6 +2,7 @@
 
 import { v } from "convex/values";
 import { action } from "./_generated/server";
+import { api } from "./_generated/api";
 
 // Analyze a single property photo
 export const analyzePropertyPhoto = action({
@@ -177,5 +178,59 @@ export const generatePropertyInsights = action({
       highlights: detectedFeatures.slice(0, 8),
       photoQuality: averageQuality > 7 ? 'excellent' : averageQuality > 5 ? 'good' : 'fair',
     };
+  },
+});
+
+// Enhance a Street View image and upload to storage
+export const enhanceStreetViewImage = action({
+  args: {
+    imageUrl: v.string(),
+  },
+  handler: async (ctx, args): Promise<{
+    success: boolean;
+    storageId?: string;
+    error?: string;
+  }> => {
+    try {
+      console.log('🎨 Enhancing Street View image...');
+      
+      // Initialize Gemini client
+      const { createGeminiClient } = await import('../lib/gemini/client');
+      const gemini = createGeminiClient();
+      
+      // Enhance the image
+      const result = await gemini.generateEnhancedPropertyPhoto(
+        args.imageUrl,
+        'street-view'
+      );
+      
+      if (!result.success || !result.enhancedImageUrl) {
+        console.error('❌ Enhancement failed:', result.error);
+        return { success: false, error: result.error };
+      }
+      
+      // Convert base64 data URL to blob
+      const base64Data = result.enhancedImageUrl.split(',')[1];
+      const blob = Buffer.from(base64Data, 'base64');
+      
+      // Upload to Convex storage
+      const storageId = await ctx.storage.store(
+        new Blob([blob], { type: 'image/jpeg' }) as any
+      );
+      
+      console.log('✅ Enhanced image uploaded:', storageId);
+      
+      return {
+        success: true,
+        storageId,
+      };
+      
+    } catch (error: any) {
+      console.error('❌ Error enhancing Street View:', error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
   },
 });
