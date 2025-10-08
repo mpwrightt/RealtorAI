@@ -51,8 +51,17 @@ export class GooglePlacesClient {
         description: pred.description,
         placeId: pred.place_id,
       }));
-    } catch (error) {
-      console.error('Error in address autocomplete:', error);
+    } catch (error: any) {
+      if (error.response?.status === 403) {
+        console.error('❌ Google Places API Error: API not enabled or billing not set up');
+        console.error('To fix this:');
+        console.error('1. Go to: https://console.cloud.google.com/apis/library/places-backend.googleapis.com');
+        console.error('2. Enable the Places API');
+        console.error('3. Set up billing for your project');
+        console.error('4. Wait a few minutes for changes to propagate');
+      } else {
+        console.error('Error in address autocomplete:', error.message);
+      }
       return [];
     }
   }

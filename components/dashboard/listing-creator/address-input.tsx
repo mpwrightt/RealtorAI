@@ -25,6 +25,7 @@ export default function AddressInput({ onAddressSelect, disabled }: AddressInput
   const [suggestions, setSuggestions] = useState<Array<{ description: string; placeId: string }>>([]);
   const [loading, setLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [apiError, setApiError] = useState(false);
 
   const autocomplete = useAction(api.addressLookup.autocompleteAddress);
   const getDetails = useAction(api.addressLookup.getAddressDetails);
@@ -37,12 +38,17 @@ export default function AddressInput({ onAddressSelect, disabled }: AddressInput
 
     const timer = setTimeout(async () => {
       setLoading(true);
+      setApiError(false);
       try {
         const results = await autocomplete({ input });
+        if (results.length === 0 && input.length >= 5) {
+          setApiError(true);
+        }
         setSuggestions(results);
         setShowSuggestions(true);
       } catch (error) {
         console.error('Error fetching suggestions:', error);
+        setApiError(true);
       } finally {
         setLoading(false);
       }
@@ -116,8 +122,23 @@ export default function AddressInput({ onAddressSelect, disabled }: AddressInput
       )}
 
       {showSuggestions && suggestions.length === 0 && input.length >= 3 && !loading && (
-        <div className="absolute z-50 w-full mt-1 bg-background border rounded-lg shadow-lg p-4 text-sm text-muted-foreground">
-          No addresses found. Try a different search.
+        <div className="absolute z-50 w-full mt-1 bg-background border rounded-lg shadow-lg p-4">
+          {apiError ? (
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-destructive">⚠️ Address autocomplete not available</p>
+              <p className="text-xs text-muted-foreground">
+                The Google Places API needs to be enabled. For now, you can type the full address manually 
+                and we'll validate it.
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Admin: Enable Places API in Google Cloud Console and set up billing.
+              </p>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              No addresses found. Try a different search.
+            </p>
+          )}
         </div>
       )}
     </div>
