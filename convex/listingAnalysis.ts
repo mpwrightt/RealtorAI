@@ -56,6 +56,12 @@ export const analyzeListingDraft = action({
       imageStorageIds: draft.photos,
     });
 
+    // Check if photo analysis returned valid data
+    if (!photoAnalysis || !photoAnalysis.summary || !photoAnalysis.photos || photoAnalysis.photos.length === 0) {
+      console.error('❌ Photo analysis failed or returned no data');
+      throw new Error('Photo analysis failed - no valid data returned');
+    }
+
     // Step 2: Generate property insights
     console.log('💡 Generating property insights...');
     const insights = await ctx.runAction(api.gemini.generatePropertyInsights, {
@@ -71,7 +77,7 @@ export const analyzeListingDraft = action({
       price: draft.price || 0,
       bedrooms: insights.estimatedBedrooms,
       bathrooms: insights.estimatedBathrooms,
-      features: photoAnalysis.summary.detectedFeatures,
+      features: photoAnalysis.summary.detectedFeatures || [],
       style: insights.style,
     });
 
