@@ -120,7 +120,11 @@ Style: Professional real estate photography, warm natural light, inviting backya
         temperature: 0.4, // Balanced creativity and accuracy
         topP: 0.95,
         topK: 40,
-      },
+        responseModalities: ['IMAGE'], // Only return images
+        imageConfig: {
+          aspectRatio: '16:9', // Professional exterior photo aspect ratio
+        },
+      } as any, // Type cast for new Gemini 2.5 features not in TS types yet
     });
 
     const prompt = `You are a professional real estate photographer creating ONE single hero shot for a property listing.
@@ -312,7 +316,11 @@ Suggested use guidelines:
         temperature: 0.4,
         topP: 0.95,
         topK: 40,
-      },
+        responseModalities: ['IMAGE'], // Only return images, faster generation
+        imageConfig: {
+          aspectRatio: '16:9', // Professional exterior photo aspect ratio
+        },
+      } as any, // Type cast for new Gemini 2.5 features not in TS types yet
     });
 
     const prompt = `You are a professional real estate photographer. Transform this street view property photo into a professional, high-quality real estate listing image.
@@ -375,7 +383,11 @@ Style: Professional real estate photography, golden hour lighting, clear blue sk
         temperature: enhancementMode === 'aerial-enhance' ? 0.3 : 0.6, // Lower temp for enhancement
         topP: 0.95,
         topK: 40,
-      },
+        responseModalities: ['IMAGE'], // Only return images
+        imageConfig: {
+          aspectRatio: '16:9', // Aerial photos look best in 16:9
+        },
+      } as any, // Type cast for new Gemini 2.5 features not in TS types yet
     });
 
     const isMultiImage = Array.isArray(satelliteImageData);
