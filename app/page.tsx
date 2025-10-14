@@ -1,23 +1,21 @@
-import HeroSection from "@/components/landing/hero-section";
-import StatsSection from "@/components/landing/stats-section";
-import ProblemSolutionSection from "@/components/landing/problem-solution-section";
-import FeaturesSection from "@/components/landing/features-section";
+import Navigation from "@/components/landing/navigation";
+import NewHeroSection from "@/components/landing/new-hero-section";
+import NewFeaturesSection from "@/components/landing/new-features-section";
+import AIEcosystemSection from "@/components/landing/ai-ecosystem-section";
 import TestimonialsSection from "@/components/landing/testimonials-section";
-import PricingSection from "@/components/landing/pricing-section";
+import NewPricingSection from "@/components/landing/new-pricing-section";
 import FinalCTASection from "@/components/landing/final-cta-section";
 import Footer from "@/components/landing/footer";
-import Navigation from "@/components/landing/navigation";
 
 export default function LandingPage() {
   return (
     <main className="min-h-screen">
       <Navigation />
-      <HeroSection />
-      <StatsSection />
-      <ProblemSolutionSection />
-      <FeaturesSection />
+      <NewHeroSection />
+      <NewFeaturesSection />
+      <AIEcosystemSection />
       <TestimonialsSection />
-      <PricingSection />
+      <NewPricingSection />
       <FinalCTASection />
       <Footer />
     </main>
