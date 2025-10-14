@@ -85,7 +85,7 @@ const TEMPLATES: Record<TemplateType, string> = {
 export default function EmailCampaigns({ agentId, agentDetails }: EmailCampaignsProps) {
   const [template, setTemplate] = useState<TemplateType>('new_listing');
   const [recipientType, setRecipientType] = useState<RecipientType>('all');
-  const [selectedListingId, setSelectedListingId] = useState<string>('');
+  const [selectedListingId, setSelectedListingId] = useState<string | null>(null);
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -214,6 +214,10 @@ export default function EmailCampaigns({ agentId, agentDetails }: EmailCampaigns
 
     return results;
   }, [recipientType, buyerSessions, leads]);
+
+  const previewSubject = (template === 'custom' ? subject : templateContent.subject).trim();
+  const previewBody = (template === 'custom' ? message : templateContent.body).trim();
+  const previewTemplateLabel = TEMPLATES[template];
 
   const handleSend = async () => {
     const trimmedSubject = (template === 'custom' ? subject : templateContent.subject).trim();
@@ -362,124 +366,147 @@ export default function EmailCampaigns({ agentId, agentDetails }: EmailCampaigns
 
           <Separator />
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-4">
-              <div>
-                <Label>Email Template</Label>
-                <Select
-                  value={template}
-                  onValueChange={(value) => {
-                    const nextTemplate = value as TemplateType;
-                    setTemplate(nextTemplate);
-                    if (nextTemplate === 'custom') {
-                      setSubject('');
-                      setMessage('');
-                    }
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(TEMPLATES).map(([key, label]) => (
-                      <SelectItem key={key} value={key}>
-                        {label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
+            <div className="space-y-6">
+              <div className="grid gap-4 lg:grid-cols-2">
+                <div className="space-y-4">
+                  <div>
+                    <Label>Email Template</Label>
+                    <Select
+                      value={template}
+                      onValueChange={(value) => {
+                        const nextTemplate = value as TemplateType;
+                        setTemplate(nextTemplate);
+                        if (nextTemplate === 'custom') {
+                          setSubject('');
+                          setMessage('');
+                        }
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(TEMPLATES).map(([key, label]) => (
+                          <SelectItem key={key} value={key}>
+                            {label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              {template !== 'custom' && (
-                <div>
-                  <Label>Related Listing (optional)</Label>
-                  <Select
-                    value={selectedListingId}
-                    onValueChange={setSelectedListingId}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select listing..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">No listing</SelectItem>
-                      {listings.map((listing) => (
-                        <SelectItem key={listing._id} value={listing._id}>
-                          {listing.address}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {template !== 'custom' && (
+                    <div>
+                      <Label>Related Listing (optional)</Label>
+                      <Select
+                        value={selectedListingId ?? 'none'}
+                        onValueChange={(value) => {
+                          if (value === 'none') {
+                            setSelectedListingId(null);
+                            return;
+                          }
+
+                          setSelectedListingId(value);
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select listing..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">No listing</SelectItem>
+                          {listings.map((listing) => (
+                            <SelectItem key={listing._id} value={listing._id}>
+                              {listing.address}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  <div>
+                    <Label>Recipients</Label>
+                    <Select value={recipientType} onValueChange={(value) => setRecipientType(value as RecipientType)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Contacts with Email</SelectItem>
+                        <SelectItem value="buyers">Buyer Portals Only</SelectItem>
+                        <SelectItem value="leads">Leads Only</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Automatically filters out contacts without email addresses or inactive sessions.
+                    </p>
+                  </div>
                 </div>
-              )}
 
-              <div>
-                <Label>Recipients</Label>
-                <Select value={recipientType} onValueChange={(value) => setRecipientType(value as RecipientType)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Contacts with Email</SelectItem>
-                    <SelectItem value="buyers">Buyer Portals Only</SelectItem>
-                    <SelectItem value="leads">Leads Only</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  Automatically filters out contacts without email addresses or inactive sessions.
-                </p>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="subject">Subject</Label>
+                    <Input
+                      id="subject"
+                      value={template === 'custom' ? subject : templateContent.subject}
+                      onChange={(event) => setSubject(event.target.value)}
+                      placeholder="Enter subject line"
+                      readOnly={template !== 'custom'}
+                    />
+                    {template !== 'custom' && (
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        Switch to “Custom” to edit the subject line.
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <Label htmlFor="message">Message</Label>
+                    <Textarea
+                      id="message"
+                      value={template === 'custom' ? message : templateContent.body}
+                      onChange={(event) => setMessage(event.target.value)}
+                      className={cn('min-h-[240px]', template !== 'custom' && 'bg-muted')}
+                      readOnly={template !== 'custom'}
+                      placeholder="Write your message..."
+                    />
+                    {template !== 'custom' && (
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        Templates include your signature and can’t be edited. Choose “Custom” to write your own message.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-dashed border-muted-foreground/20 bg-muted/40 px-4 py-3">
+                <div className="flex items-center gap-2 text-xs md:text-sm text-muted-foreground">
+                  <Badge variant="outline" className="border-primary/40 text-primary">
+                    Live Preview
+                  </Badge>
+                  Updates as you tailor the subject, message, recipients, and listing.
+                </div>
+
+                <Button onClick={handleSend} disabled={isSending || recipients.length === 0}>
+                  {isSending ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Mail className="mr-2 h-4 w-4" />
+                  )}
+                  {isSending ? 'Sending...' : 'Send Email Campaign'}
+                </Button>
               </div>
             </div>
 
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="subject">Subject</Label>
-                <Input
-                  id="subject"
-                  value={template === 'custom' ? subject : templateContent.subject}
-                  onChange={(event) => setSubject(event.target.value)}
-                  placeholder="Enter subject line"
-                  readOnly={template !== 'custom'}
-                />
-                {template !== 'custom' && (
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    Switch to “Custom” to edit the subject line.
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <Label htmlFor="message">Message</Label>
-                <Textarea
-                  id="message"
-                  value={template === 'custom' ? message : templateContent.body}
-                  onChange={(event) => setMessage(event.target.value)}
-                  className={cn('min-h-[240px]', template !== 'custom' && 'bg-muted')}
-                  readOnly={template !== 'custom'}
-                  placeholder="Write your message..."
-                />
-                {template !== 'custom' && (
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    Templates include your signature and can’t be edited. Choose “Custom” to write your own message.
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2 text-xs md:text-sm text-muted-foreground">
-              <Badge variant="outline">Preview</Badge>
-              Emails will be sent individually with your branding and integration settings.
-            </div>
-
-            <Button onClick={handleSend} disabled={isSending || recipients.length === 0}>
-              {isSending ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Mail className="mr-2 h-4 w-4" />
-              )}
-              {isSending ? 'Sending...' : 'Send Email Campaign'}
-            </Button>
+            <EmailPreview
+              subject={previewSubject || 'Subject preview will appear here'}
+              body={previewBody}
+              fromName={fromName}
+              replyTo={replyToEmail}
+              templateLabel={previewTemplateLabel}
+              recipientCount={recipients.length}
+              listing={selectedListing}
+            />
           </div>
         </CardContent>
       </Card>
@@ -492,6 +519,109 @@ export default function EmailCampaigns({ agentId, agentDetails }: EmailCampaigns
           </CardDescription>
         </CardHeader>
       </Card>
+    </div>
+  );
+}
+
+interface EmailPreviewListing {
+  address?: string;
+  city?: string;
+  price?: number;
+  bedrooms?: number;
+  bathrooms?: number;
+}
+
+interface EmailPreviewProps {
+  subject: string;
+  body: string;
+  fromName: string;
+  replyTo?: string | null;
+  templateLabel: string;
+  recipientCount: number;
+  listing: EmailPreviewListing | null;
+}
+
+function EmailPreview({ subject, body, fromName, replyTo, templateLabel, recipientCount, listing }: EmailPreviewProps) {
+  const paragraphs = body
+    ? body.split('\n\n').map((paragraph) => paragraph.split('\n'))
+    : [];
+
+  return (
+    <div className="relative overflow-hidden rounded-3xl border border-slate-800 bg-gradient-to-br from-slate-900 via-slate-950 to-black text-slate-100 shadow-2xl">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(148,163,255,0.25),transparent_55%)]" />
+      <div className="relative flex h-full flex-col gap-6 p-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 ring-1 ring-white/20">
+              <Mail className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold leading-tight">{fromName || 'Your Brand'}</p>
+              <p className="text-xs text-slate-300">
+                {replyTo ? `Replies go to ${replyTo}` : 'Replies use your default email'}
+              </p>
+            </div>
+          </div>
+          <Badge variant="outline" className="border-white/20 bg-white/10 text-white">
+            {templateLabel}
+          </Badge>
+        </div>
+
+        <div className="rounded-2xl border border-white/10 bg-black/30 p-5 shadow-inner">
+          <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Subject</p>
+          <p className="mt-2 text-base font-semibold text-white">{subject || 'Subject preview will appear here'}</p>
+          <div className="mt-4 space-y-3 text-sm leading-relaxed text-slate-200">
+            {paragraphs.length ? (
+              paragraphs.map((lines, index) => (
+                <p key={index}>
+                  {lines.map((line, lineIndex) => (
+                    <span key={lineIndex}>
+                      {line}
+                      {lineIndex < lines.length - 1 ? <br /> : null}
+                    </span>
+                  ))}
+                </p>
+              ))
+            ) : (
+              <p className="text-slate-400">Start writing your message to see the rendered preview.</p>
+            )}
+          </div>
+        </div>
+
+        {listing ? (
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-xs text-slate-200 backdrop-blur">
+            <p className="text-xs uppercase tracking-[0.25em] text-slate-400">Featured Listing</p>
+            {listing.address ? (
+              <p className="mt-2 text-sm font-semibold text-white">{listing.address}</p>
+            ) : null}
+            {listing.city ? <p className="text-xs text-slate-300">{listing.city}</p> : null}
+            <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-slate-200">
+              {typeof listing.price === 'number' ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-1 font-medium text-emerald-200">
+                  ${listing.price.toLocaleString()}
+                </span>
+              ) : null}
+              {typeof listing.bedrooms === 'number' ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-1">
+                  {listing.bedrooms} bd
+                </span>
+              ) : null}
+              {typeof listing.bathrooms === 'number' ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-1">
+                  {listing.bathrooms} ba
+                </span>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+
+        <div className="flex items-center justify-between text-xs text-slate-400">
+          <span>
+            {recipientCount} recipient{recipientCount === 1 ? '' : 's'}
+          </span>
+          <span>Preview only</span>
+        </div>
+      </div>
     </div>
   );
 }
