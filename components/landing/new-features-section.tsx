@@ -20,7 +20,7 @@ const features = [
     Icon: Sparkles,
     name: "AI Content Generation",
     description: "Generate property descriptions, social media posts, and email campaigns in seconds.",
-    href: "#",
+    href: "/features/ai-content-generation",
     cta: "Learn more",
     className: "col-span-3 lg:col-span-1",
     background: (
@@ -31,7 +31,7 @@ const features = [
     Icon: Camera,
     name: "Smart Listing Creator",
     description: "AI-enhanced photos, automatic feature detection, and compelling descriptions.",
-    href: "#",
+    href: "/features/smart-listing-creator",
     cta: "Learn more",
     className: "col-span-3 lg:col-span-2",
     background: (
@@ -42,7 +42,7 @@ const features = [
     Icon: Users,
     name: "Client Portals",
     description: "Branded buyer and seller portals with AI chat, property matching, and real-time updates.",
-    href: "#",
+    href: "/features/client-portals",
     cta: "Learn more",
     className: "col-span-3 lg:col-span-2",
     background: (
@@ -53,7 +53,7 @@ const features = [
     Icon: Brain,
     name: "AI Assistant",
     description: "24/7 AI that answers client questions about properties, neighborhoods, and more.",
-    href: "#",
+    href: "/features/ai-assistant",
     cta: "Learn more",
     className: "col-span-3 lg:col-span-1",
     background: (
@@ -64,7 +64,7 @@ const features = [
     Icon: BarChart3,
     name: "Advanced Analytics",
     description: "Track listing views, buyer engagement, and conversion metrics in real-time.",
-    href: "#",
+    href: "/features/advanced-analytics",
     cta: "Learn more",
     className: "col-span-3 lg:col-span-1",
     background: (
@@ -75,7 +75,7 @@ const features = [
     Icon: Mail,
     name: "Automated Campaigns",
     description: "Smart email and SMS campaigns that nurture leads automatically.",
-    href: "#",
+    href: "/features/automated-campaigns",
     cta: "Learn more",
     className: "col-span-3 lg:col-span-1",
     background: (
@@ -86,7 +86,7 @@ const features = [
     Icon: Calendar,
     name: "Tour Scheduling",
     description: "Automated scheduling with calendar sync and reminder notifications.",
-    href: "#",
+    href: "/features/tour-scheduling",
     cta: "Learn more",
     className: "col-span-3 lg:col-span-1",
     background: (
