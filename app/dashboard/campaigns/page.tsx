@@ -12,13 +12,15 @@ export const metadata = {
   description: 'Manage SMS and email campaigns in one place.',
 };
 
-interface CampaignsPageProps {
-  searchParams?: {
-    tab?: string;
-  };
-}
+type CampaignsPageSearchParams = {
+  tab?: string;
+};
 
-export default async function CampaignsPage({ searchParams }: CampaignsPageProps) {
+export default async function CampaignsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<CampaignsPageSearchParams>;
+}) {
   const { userId } = await auth();
 
   if (!userId) {
@@ -33,7 +35,9 @@ export default async function CampaignsPage({ searchParams }: CampaignsPageProps
     redirect('/dashboard');
   }
 
-  const defaultTab = searchParams?.tab === 'email' ? 'email' : 'sms';
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+
+  const defaultTab = resolvedSearchParams?.tab === 'email' ? 'email' : 'sms';
 
   return (
     <div className="space-y-6">
