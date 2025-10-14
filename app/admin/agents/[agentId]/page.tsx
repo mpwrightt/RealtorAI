@@ -19,7 +19,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 
 export default function AgentDetailPage() {
-  const params = useParams();
+  const params = useParams() as Readonly<{ agentId: string }>;
   const router = useRouter();
   const { isAuthorized, isLoading: authLoading } = useRequireAdmin();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
