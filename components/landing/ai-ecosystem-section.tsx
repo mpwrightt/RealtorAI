@@ -5,8 +5,8 @@ import { Sparkles, Home, Users, Mail, TrendingUp, Brain, Zap, BarChart3, Buildin
 
 export default function AIEcosystemSection() {
   return (
-    <section className="py-24 bg-gradient-to-b from-background to-primary/5 relative overflow-hidden">
-      <div className="container">
+    <section className="py-16 md:py-24 bg-gradient-to-b from-background to-primary/5 relative overflow-hidden">
+      <div className="container px-4 md:px-6">
         <BlurFade delay={0.2}>
           <div className="text-center space-y-4 mb-16">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20">
@@ -39,29 +39,29 @@ export default function AIEcosystemSection() {
               </div>
 
               {/* Connected Icons Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
-                <div className="flex flex-col items-center gap-3 p-6 rounded-xl border bg-card hover:shadow-lg transition-all">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+                <div className="flex flex-col items-center gap-3 p-4 md:p-6 rounded-xl border bg-card hover:shadow-lg transition-all">
                   <div className="h-14 w-14 rounded-full bg-blue-500/10 flex items-center justify-center">
                     <Building2 className="h-7 w-7 text-blue-500" />
                   </div>
                   <p className="text-sm font-semibold text-center">Listings</p>
                 </div>
                 
-                <div className="flex flex-col items-center gap-3 p-6 rounded-xl border bg-card hover:shadow-lg transition-all">
+                <div className="flex flex-col items-center gap-3 p-4 md:p-6 rounded-xl border bg-card hover:shadow-lg transition-all">
                   <div className="h-14 w-14 rounded-full bg-green-500/10 flex items-center justify-center">
                     <Users className="h-7 w-7 text-green-500" />
                   </div>
                   <p className="text-sm font-semibold text-center">Clients</p>
                 </div>
                 
-                <div className="flex flex-col items-center gap-3 p-6 rounded-xl border bg-card hover:shadow-lg transition-all">
+                <div className="flex flex-col items-center gap-3 p-4 md:p-6 rounded-xl border bg-card hover:shadow-lg transition-all">
                   <div className="h-14 w-14 rounded-full bg-purple-500/10 flex items-center justify-center">
                     <TrendingUp className="h-7 w-7 text-purple-500" />
                   </div>
                   <p className="text-sm font-semibold text-center">Marketing</p>
                 </div>
                 
-                <div className="flex flex-col items-center gap-3 p-6 rounded-xl border bg-card hover:shadow-lg transition-all">
+                <div className="flex flex-col items-center gap-3 p-4 md:p-6 rounded-xl border bg-card hover:shadow-lg transition-all">
                   <div className="h-14 w-14 rounded-full bg-orange-500/10 flex items-center justify-center">
                     <BarChart3 className="h-7 w-7 text-orange-500" />
                   </div>

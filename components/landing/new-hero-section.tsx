@@ -54,8 +54,8 @@ export default function NewHeroSection() {
       
       <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-accent/10 z-0" />
 
-      <div className="container relative z-10 py-32">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
+      <div className="container relative z-10 py-16 md:py-24 lg:py-32">
+        <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
           {/* Left Content */}
           <BlurFade delay={0.25}>
             <div className="space-y-8">
@@ -121,7 +121,7 @@ export default function NewHeroSection() {
               </div>
 
               {/* CTAs */}
-              <div className="flex flex-col sm:flex-row gap-4 pt-4">
+              <div className="flex flex-col sm:flex-row gap-4 pt-6">
                 <Link href="/sign-up" className="relative">
                   <ShinyButton className="text-lg w-full sm:w-auto">
                     Start Free Trial
