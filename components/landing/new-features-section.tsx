@@ -24,7 +24,7 @@ const features = [
     cta: "Learn more",
     className: "col-span-3 lg:col-span-1",
     background: (
-      <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-pink-500/20" />
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-primary/10 to-purple-500/10" />
     ),
   },
   {
@@ -35,7 +35,7 @@ const features = [
     cta: "Learn more",
     className: "col-span-3 lg:col-span-2",
     background: (
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-cyan-500/20" />
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-primary/10 to-cyan-500/10" />
     ),
   },
   {
@@ -46,7 +46,7 @@ const features = [
     cta: "Learn more",
     className: "col-span-3 lg:col-span-2",
     background: (
-      <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 to-emerald-500/20" />
+      <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 via-emerald-500/10 to-primary/10" />
     ),
   },
   {
@@ -57,7 +57,7 @@ const features = [
     cta: "Learn more",
     className: "col-span-3 lg:col-span-1",
     background: (
-      <div className="absolute inset-0 bg-gradient-to-br from-orange-500/20 to-red-500/20" />
+      <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 via-primary/10 to-amber-500/10" />
     ),
   },
   {
@@ -68,7 +68,7 @@ const features = [
     cta: "Learn more",
     className: "col-span-3 lg:col-span-1",
     background: (
-      <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/20 to-purple-500/20" />
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-indigo-500/10 to-purple-500/10" />
     ),
   },
   {
@@ -79,7 +79,7 @@ const features = [
     cta: "Learn more",
     className: "col-span-3 lg:col-span-1",
     background: (
-      <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/20 to-orange-500/20" />
+      <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/5 via-primary/10 to-orange-500/10" />
     ),
   },
   {
@@ -90,7 +90,7 @@ const features = [
     cta: "Learn more",
     className: "col-span-3 lg:col-span-1",
     background: (
-      <div className="absolute inset-0 bg-gradient-to-br from-pink-500/20 to-rose-500/20" />
+      <div className="absolute inset-0 bg-gradient-to-br from-pink-500/5 via-primary/10 to-rose-500/10" />
     ),
   },
 ];
