@@ -1,7 +1,7 @@
 "use client";
 
 import BlurFade from "@/components/magicui/blur-fade";
-import { Sparkles, Home, Users, Mail, MessageSquare, TrendingUp, Calendar, Zap } from "lucide-react";
+import { Sparkles, Home, Users, Mail, TrendingUp, Brain, Zap, BarChart3, Building2 } from "lucide-react";
 
 export default function AIEcosystemSection() {
   return (
@@ -24,61 +24,65 @@ export default function AIEcosystemSection() {
           </div>
         </BlurFade>
 
-        <div className="grid lg:grid-cols-2 gap-12 items-center mt-16">
-          {/* Left - Orbiting Circles */}
+        <div className="max-w-5xl mx-auto mt-16">
+          {/* Visual Diagram */}
           <BlurFade delay={0.4}>
-            <div className="relative h-[600px] w-full flex items-center justify-center">
-              <div className="relative flex h-full w-full items-center justify-center">
-                {/* Center AI Core */}
+            <div className="relative mb-16">
+              {/* Center AI Core */}
+              <div className="flex items-center justify-center mb-12">
                 <div className="relative">
                   <div className="absolute inset-0 h-32 w-32 rounded-full bg-primary/20 blur-3xl" />
                   <div className="relative h-24 w-24 rounded-full bg-primary flex items-center justify-center shadow-2xl">
-                    <Sparkles className="h-12 w-12 text-white animate-pulse" />
+                    <Brain className="h-12 w-12 text-white animate-pulse" />
                   </div>
-                  <div className="absolute -inset-4 rounded-full border border-primary/20 animate-ping" />
                 </div>
+              </div>
 
-                {/* First Orbit - Core Functions */}
-                <OrbitingCircles radius={120} duration={20}>
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-500 shadow-lg">
-                    <Home className="h-8 w-8 text-white" />
+              {/* Connected Icons Grid */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
+                <div className="flex flex-col items-center gap-3 p-6 rounded-xl border bg-card hover:shadow-lg transition-all">
+                  <div className="h-14 w-14 rounded-full bg-blue-500/10 flex items-center justify-center">
+                    <Building2 className="h-7 w-7 text-blue-500" />
                   </div>
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-500 shadow-lg">
-                    <Users className="h-8 w-8 text-white" />
+                  <p className="text-sm font-semibold text-center">Listings</p>
+                </div>
+                
+                <div className="flex flex-col items-center gap-3 p-6 rounded-xl border bg-card hover:shadow-lg transition-all">
+                  <div className="h-14 w-14 rounded-full bg-green-500/10 flex items-center justify-center">
+                    <Users className="h-7 w-7 text-green-500" />
                   </div>
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-purple-500 shadow-lg">
-                    <TrendingUp className="h-8 w-8 text-white" />
+                  <p className="text-sm font-semibold text-center">Clients</p>
+                </div>
+                
+                <div className="flex flex-col items-center gap-3 p-6 rounded-xl border bg-card hover:shadow-lg transition-all">
+                  <div className="h-14 w-14 rounded-full bg-purple-500/10 flex items-center justify-center">
+                    <TrendingUp className="h-7 w-7 text-purple-500" />
                   </div>
-                </OrbitingCircles>
-
-                {/* Second Orbit - Communication */}
-                <OrbitingCircles radius={200} duration={30} reverse>
-                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-orange-500 shadow-lg">
-                    <Mail className="h-7 w-7 text-white" />
+                  <p className="text-sm font-semibold text-center">Marketing</p>
+                </div>
+                
+                <div className="flex flex-col items-center gap-3 p-6 rounded-xl border bg-card hover:shadow-lg transition-all">
+                  <div className="h-14 w-14 rounded-full bg-orange-500/10 flex items-center justify-center">
+                    <BarChart3 className="h-7 w-7 text-orange-500" />
                   </div>
-                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-pink-500 shadow-lg">
-                    <MessageSquare className="h-7 w-7 text-white" />
-                  </div>
-                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-cyan-500 shadow-lg">
-                    <Calendar className="h-7 w-7 text-white" />
-                  </div>
-                </OrbitingCircles>
+                  <p className="text-sm font-semibold text-center">Analytics</p>
+                </div>
               </div>
             </div>
           </BlurFade>
 
-          {/* Right - Content */}
+          {/* Content */}
           <BlurFade delay={0.6}>
-            <div className="space-y-8">
-              <div>
+            <div className="space-y-12">
+              <div className="text-center">
                 <h3 className="text-3xl font-bold mb-4">AI at the Center</h3>
-                <p className="text-lg text-muted-foreground">
+                <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
                   Our AI engine orchestrates your entire workflow, connecting listings, clients, marketing, and analytics in one intelligent system.
                 </p>
               </div>
 
-              <div className="space-y-6">
-                <div className="flex gap-4">
+              <div className="grid md:grid-cols-2 gap-8">
+                <div className="flex gap-4 p-6 rounded-xl border bg-card">
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-blue-500/10">
                     <Home className="h-6 w-6 text-blue-500" />
                   </div>
@@ -90,7 +94,7 @@ export default function AIEcosystemSection() {
                   </div>
                 </div>
 
-                <div className="flex gap-4">
+                <div className="flex gap-4 p-6 rounded-xl border bg-card">
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-green-500/10">
                     <Users className="h-6 w-6 text-green-500" />
                   </div>
@@ -102,7 +106,7 @@ export default function AIEcosystemSection() {
                   </div>
                 </div>
 
-                <div className="flex gap-4">
+                <div className="flex gap-4 p-6 rounded-xl border bg-card">
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-purple-500/10">
                     <TrendingUp className="h-6 w-6 text-purple-500" />
                   </div>
@@ -114,7 +118,7 @@ export default function AIEcosystemSection() {
                   </div>
                 </div>
 
-                <div className="flex gap-4">
+                <div className="flex gap-4 p-6 rounded-xl border bg-card">
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-orange-500/10">
                     <Mail className="h-6 w-6 text-orange-500" />
                   </div>
