@@ -85,7 +85,7 @@ const TEMPLATES: Record<TemplateType, string> = {
 export default function EmailCampaigns({ agentId, agentDetails }: EmailCampaignsProps) {
   const [template, setTemplate] = useState<TemplateType>('new_listing');
   const [recipientType, setRecipientType] = useState<RecipientType>('all');
-  const [selectedListingId, setSelectedListingId] = useState<string>('');
+  const [selectedListingId, setSelectedListingId] = useState<string | null>(null);
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -394,14 +394,21 @@ export default function EmailCampaigns({ agentId, agentDetails }: EmailCampaigns
                 <div>
                   <Label>Related Listing (optional)</Label>
                   <Select
-                    value={selectedListingId}
-                    onValueChange={setSelectedListingId}
+                    value={selectedListingId ?? 'none'}
+                    onValueChange={(value) => {
+                      if (value === 'none') {
+                        setSelectedListingId(null);
+                        return;
+                      }
+
+                      setSelectedListingId(value);
+                    }}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select listing..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">No listing</SelectItem>
+                      <SelectItem value="none">No listing</SelectItem>
                       {listings.map((listing) => (
                         <SelectItem key={listing._id} value={listing._id}>
                           {listing.address}
