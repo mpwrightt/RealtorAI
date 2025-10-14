@@ -30,12 +30,12 @@ function getPageTitle(pathname: string): string {
     return "Seller Sessions"
   }
 
-  if (pathname.startsWith("/dashboard/messages")) {
-    return "Messages"
+  if (pathname.startsWith("/dashboard/campaigns") || pathname.startsWith("/dashboard/sms-campaigns")) {
+    return "Campaigns"
   }
 
-  if (pathname.startsWith("/dashboard/sms-campaigns")) {
-    return "SMS Campaigns"
+  if (pathname.startsWith("/dashboard/messages")) {
+    return "Messages"
   }
 
   if (pathname.startsWith("/dashboard/clients")) {

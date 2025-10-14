@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { to, subject, html, text, integration } = body;
+    const { to, subject, html, text, integration, from, fromName, replyTo } = body;
 
     if (!to || !subject || (!html && !text)) {
       return NextResponse.json(
@@ -28,6 +28,9 @@ export async function POST(req: NextRequest) {
       subject,
       html,
       text,
+      from,
+      fromName,
+      replyTo,
       integration,
     });
 
