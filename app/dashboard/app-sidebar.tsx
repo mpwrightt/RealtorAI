@@ -7,6 +7,7 @@ import {
   IconDashboard,
   IconDatabase,
   IconMessageCircle,
+  IconSpeakerphone,
   IconFileAi,
   IconFileDescription,
   IconFileWord,
@@ -48,13 +49,13 @@ const data = {
       icon: IconDashboard,
     },
     {
-      title: "Messages",
-      url: "/dashboard/messages",
-      icon: IconMessageCircle,
+      title: "Campaigns",
+      url: "/dashboard/campaigns",
+      icon: IconSpeakerphone,
     },
     {
-      title: "SMS Campaigns",
-      url: "/dashboard/sms-campaigns",
+      title: "Messages",
+      url: "/dashboard/messages",
       icon: IconMessageCircle,
     },
     {
