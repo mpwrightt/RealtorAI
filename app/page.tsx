@@ -1,5 +1,6 @@
 import Navigation from "@/components/landing/navigation";
 import NewHeroSection from "@/components/landing/new-hero-section";
+import HowItWorksSection from "@/components/landing/how-it-works-section";
 import NewFeaturesSection from "@/components/landing/new-features-section";
 import AIEcosystemSection from "@/components/landing/ai-ecosystem-section";
 import TestimonialsSection from "@/components/landing/testimonials-section";
@@ -12,6 +13,7 @@ export default function LandingPage() {
     <main className="min-h-screen">
       <Navigation />
       <NewHeroSection />
+      <HowItWorksSection />
       <NewFeaturesSection />
       <AIEcosystemSection />
       <TestimonialsSection />

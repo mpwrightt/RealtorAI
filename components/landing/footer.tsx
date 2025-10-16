@@ -1,11 +1,23 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { GridPattern } from "@/components/ui/grid-pattern";
+import { cn } from "@/lib/utils";
 import { Home, Twitter, Facebook, Instagram, Linkedin } from "lucide-react";
 
 export default function Footer() {
   return (
-    <footer className="border-t bg-muted/30">
-      <div className="container py-16">
+    <footer className="border-t bg-muted/30 relative overflow-hidden">
+      <GridPattern
+        className={cn(
+          "absolute inset-0 z-0 opacity-10",
+          "[mask-image:linear-gradient(to_top,white,transparent)]"
+        )}
+        width={30}
+        height={30}
+        x={-1}
+        y={-1}
+      />
+      <div className="container py-16 relative z-10">
         <div className="grid md:grid-cols-5 gap-12">
           {/* Brand Column */}
           <div className="md:col-span-2">
@@ -45,10 +57,10 @@ export default function Footer() {
           <div>
             <h4 className="font-bold mb-4">Product</h4>
             <ul className="space-y-3 text-sm">
-              <li><Link href="#features" className="text-muted-foreground hover:text-foreground">Features</Link></li>
-              <li><Link href="#pricing" className="text-muted-foreground hover:text-foreground">Pricing</Link></li>
-              <li><Link href="/dashboard/demo" className="text-muted-foreground hover:text-foreground">Demo</Link></li>
-              <li><Link href="/roadmap" className="text-muted-foreground hover:text-foreground">Roadmap</Link></li>
+              <li><Link href="#features" className="text-muted-foreground hover:text-primary transition-colors">Features</Link></li>
+              <li><Link href="#pricing" className="text-muted-foreground hover:text-primary transition-colors">Pricing</Link></li>
+              <li><Link href="/dashboard/demo" className="text-muted-foreground hover:text-primary transition-colors">Demo</Link></li>
+              <li><Link href="/roadmap" className="text-muted-foreground hover:text-primary transition-colors">Roadmap</Link></li>
             </ul>
           </div>
 
@@ -56,10 +68,10 @@ export default function Footer() {
           <div>
             <h4 className="font-bold mb-4">Company</h4>
             <ul className="space-y-3 text-sm">
-              <li><Link href="/about" className="text-muted-foreground hover:text-foreground">About</Link></li>
-              <li><Link href="/blog" className="text-muted-foreground hover:text-foreground">Blog</Link></li>
-              <li><Link href="/careers" className="text-muted-foreground hover:text-foreground">Careers</Link></li>
-              <li><Link href="/contact" className="text-muted-foreground hover:text-foreground">Contact</Link></li>
+              <li><Link href="/about" className="text-muted-foreground hover:text-primary transition-colors">About</Link></li>
+              <li><Link href="/blog" className="text-muted-foreground hover:text-primary transition-colors">Blog</Link></li>
+              <li><Link href="/careers" className="text-muted-foreground hover:text-primary transition-colors">Careers</Link></li>
+              <li><Link href="/contact" className="text-muted-foreground hover:text-primary transition-colors">Contact</Link></li>
             </ul>
           </div>
 
@@ -67,9 +79,9 @@ export default function Footer() {
           <div>
             <h4 className="font-bold mb-4">Legal</h4>
             <ul className="space-y-3 text-sm">
-              <li><Link href="/privacy" className="text-muted-foreground hover:text-foreground">Privacy</Link></li>
-              <li><Link href="/terms" className="text-muted-foreground hover:text-foreground">Terms</Link></li>
-              <li><Link href="/security" className="text-muted-foreground hover:text-foreground">Security</Link></li>
+              <li><Link href="/privacy" className="text-muted-foreground hover:text-primary transition-colors">Privacy</Link></li>
+              <li><Link href="/terms" className="text-muted-foreground hover:text-primary transition-colors">Terms</Link></li>
+              <li><Link href="/security" className="text-muted-foreground hover:text-primary transition-colors">Security</Link></li>
             </ul>
           </div>
         </div>

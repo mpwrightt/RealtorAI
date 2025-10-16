@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import BlurFade from "@/components/magicui/blur-fade";
 import Marquee from "@/components/magicui/marquee";
+import { DotPattern } from "@/components/ui/dot-pattern";
+import { cn } from "@/lib/utils";
 import { Star } from "lucide-react";
 
 const testimonials = [
@@ -36,7 +38,7 @@ const testimonials = [
 
 function TestimonialCard({ testimonial }: { testimonial: typeof testimonials[0] }) {
   return (
-    <Card className="p-6 max-w-md mx-4">
+    <Card className="p-6 max-w-md mx-4 hover:shadow-xl transition-all duration-300 hover:scale-105">
       <div className="flex gap-1 mb-4">
         {[...Array(5)].map((_, i) => (
           <Star key={i} className="h-4 w-4 fill-primary text-primary" />
@@ -59,6 +61,17 @@ function TestimonialCard({ testimonial }: { testimonial: typeof testimonials[0] 
 export default function TestimonialsSection() {
   return (
     <section id="testimonials" className="py-24 bg-muted/30 relative overflow-hidden">
+      <DotPattern
+        className={cn(
+          "absolute inset-0 z-0 opacity-20",
+          "[mask-image:linear-gradient(to_bottom,white,transparent,white)]"
+        )}
+        width={20}
+        height={20}
+        cx={1}
+        cy={1}
+        cr={0.5}
+      />
       <div className="container relative z-10">
         <BlurFade delay={0.25}>
           <div className="text-center max-w-3xl mx-auto mb-16">

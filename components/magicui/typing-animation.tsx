@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { cn } from "@/lib/utils";
 
 interface TypingAnimationProps {
@@ -20,7 +20,7 @@ export default function TypingAnimation({
   const [currentTextIndex, setCurrentTextIndex] = useState<number>(0);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
 
-  const textArray = texts || (text ? [text] : []);
+  const textArray = useMemo(() => texts || (text ? [text] : []), [texts, text]);
   const currentText = textArray[currentTextIndex] || "";
 
   useEffect(() => {

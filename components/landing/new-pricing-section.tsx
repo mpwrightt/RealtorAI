@@ -5,6 +5,8 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { ShineBorder } from "@/components/ui/shine-border";
 import BlurFade from "@/components/magicui/blur-fade";
 import ShinyButton from "@/components/magicui/shiny-button";
+import { GridPattern } from "@/components/ui/grid-pattern";
+import { cn } from "@/lib/utils";
 import { Check, Sparkles, Zap, Crown } from "lucide-react";
 import Link from "next/link";
 
@@ -65,8 +67,18 @@ const plans = [
 
 export default function NewPricingSection() {
   return (
-    <section className="py-16 md:py-24 bg-background relative overflow-hidden">
-      <div className="container">
+    <section id="pricing" className="py-16 md:py-24 bg-background relative overflow-hidden">
+      <GridPattern
+        className={cn(
+          "absolute inset-0 z-0 opacity-30",
+          "[mask-image:radial-gradient(circle_at_center,white,transparent)]"
+        )}
+        width={50}
+        height={50}
+        x={-1}
+        y={-1}
+      />
+      <div className="container relative z-10">
         <BlurFade delay={0.2}>
           <div className="text-center space-y-4 mb-16">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20">
@@ -89,7 +101,7 @@ export default function NewPricingSection() {
             <BlurFade key={idx} delay={0.2 + idx * 0.1}>
               {plan.popular ? (
                 <ShineBorder
-                  className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden rounded-lg border bg-background p-0"
+                  className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden rounded-lg border bg-background p-0 hover:scale-105 transition-transform duration-300"
                   color={["#6366f1", "#8b5cf6", "#d946ef"]}
                 >
                   <Card className="w-full h-full border-0 shadow-none">
@@ -131,7 +143,7 @@ export default function NewPricingSection() {
                   </Card>
                 </ShineBorder>
               ) : (
-                <Card className="relative flex flex-col h-full">
+                <Card className="relative flex flex-col h-full hover:scale-105 hover:shadow-xl transition-all duration-300">
                   <CardHeader>
                     <div className="flex items-center justify-between mb-4">
                       <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -175,7 +187,7 @@ export default function NewPricingSection() {
               Frequently Asked Questions
             </h3>
             <div className="space-y-6">
-              <div className="border rounded-lg p-6">
+              <div className="border rounded-lg p-6 hover:bg-muted/50 transition-colors">
                 <h4 className="font-semibold mb-2">Is there a free trial?</h4>
                 <p className="text-muted-foreground text-sm">
                   Yes! All plans include a 14-day free trial with full access to features. No credit card required.

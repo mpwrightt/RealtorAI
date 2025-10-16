@@ -6,13 +6,24 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import BlurFade from "@/components/magicui/blur-fade";
 import Particles from "@/components/magicui/particles";
 import RainbowButton from "@/components/magicui/rainbow-button";
+import { AnimatedGridPattern } from "@/components/ui/animated-grid-pattern";
+import { cn } from "@/lib/utils";
 import Link from "next/link";
 
 export default function FinalCTASection() {
   return (
     <section className="py-24 relative overflow-hidden">
-      <Particles className="absolute inset-0" quantity={50} color="#6366f1" />
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-background to-accent/20" />
+      <AnimatedGridPattern
+        numSquares={30}
+        maxOpacity={0.1}
+        duration={3}
+        className={cn(
+          "absolute inset-0 z-0",
+          "[mask-image:radial-gradient(500px_circle_at_center,white,transparent)]"
+        )}
+      />
+      <Particles className="absolute inset-0 z-0" quantity={40} color="#6366f1" />
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-background to-accent/20 z-0" />
 
       <div className="container relative z-10">
         <BlurFade delay={0.25}>
@@ -32,10 +43,10 @@ export default function FinalCTASection() {
               <Input
                 type="email"
                 placeholder="Enter your email"
-                className="flex-1 h-14 text-lg"
+                className="flex-1 h-14 text-lg focus:ring-2 focus:ring-primary/50 transition-all"
               />
               <Link href="/sign-up">
-                <RainbowButton className="h-14 px-8 text-lg w-full sm:w-auto">
+                <RainbowButton className="h-14 px-8 text-lg w-full sm:w-auto shadow-lg shadow-primary/50 hover:shadow-primary/70 transition-shadow">
                   Start Free Trial
                 </RainbowButton>
               </Link>

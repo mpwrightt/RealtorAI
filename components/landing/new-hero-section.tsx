@@ -8,11 +8,12 @@ import BlurFade from "@/components/magicui/blur-fade";
 import NumberTicker from "@/components/magicui/number-ticker";
 import { Meteors } from "@/components/ui/meteors";
 import { BorderBeam } from "@/components/ui/border-beam";
+import { DotPattern } from "@/components/ui/dot-pattern";
+import { cn } from "@/lib/utils";
 import { Sparkles, Play, TrendingUp, Zap, Users } from "lucide-react";
 import Link from "next/link";
 import { AnimatedBeam } from "@/components/ui/animated-beam";
 import { forwardRef, useRef } from "react";
-import { cn } from "@/lib/utils";
 
 const Circle = forwardRef<
   HTMLDivElement,
@@ -43,14 +44,25 @@ export default function NewHeroSection() {
   return (
     <section className="relative min-h-screen flex items-center overflow-hidden bg-gradient-to-b from-background via-background to-primary/5">
       {/* Layered Background Effects */}
+      <DotPattern
+        className={cn(
+          "absolute inset-0 z-0",
+          "[mask-image:radial-gradient(ellipse_at_center,white,transparent)]"
+        )}
+        width={32}
+        height={32}
+        cx={1}
+        cy={1}
+        cr={1}
+      />
       <Particles
         className="absolute inset-0 z-0"
-        quantity={80}
+        quantity={60}
         ease={80}
         color="#6366f1"
         refresh={false}
       />
-      <Meteors number={20} />
+      <Meteors number={15} />
       
       <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-accent/10 z-0" />
 
@@ -122,14 +134,18 @@ export default function NewHeroSection() {
 
               {/* CTAs */}
               <div className="flex flex-col sm:flex-row gap-4 pt-6">
-                <Link href="/sign-up" className="relative">
-                  <ShinyButton className="text-lg w-full sm:w-auto">
+                <Link href="/sign-up" className="relative group">
+                  <ShinyButton className="text-lg w-full sm:w-auto shadow-lg shadow-primary/50 hover:shadow-primary/70 transition-shadow">
                     Start Free Trial
                   </ShinyButton>
                   <BorderBeam size={250} duration={12} delay={9} />
                 </Link>
                 <Link href="/dashboard/demo">
-                  <Button variant="outline" size="lg" className="text-lg px-8 h-14 w-full sm:w-auto">
+                  <Button 
+                    variant="outline" 
+                    size="lg" 
+                    className="text-lg px-8 h-14 w-full sm:w-auto hover:bg-primary/10 hover:border-primary/50 transition-all duration-300"
+                  >
                     <Play className="mr-2 h-5 w-5" />
                     Watch Demo
                   </Button>

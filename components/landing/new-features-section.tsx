@@ -3,6 +3,8 @@
 import { BentoCard, BentoGrid } from "@/components/ui/bento-grid";
 import { MagicCard } from "@/components/ui/magic-card";
 import BlurFade from "@/components/magicui/blur-fade";
+import { RetroGrid } from "@/components/ui/retro-grid";
+import { Badge } from "@/components/ui/badge";
 import { 
   Sparkles, 
   MessageSquare, 
@@ -97,8 +99,9 @@ const features = [
 
 export default function NewFeaturesSection() {
   return (
-    <section className="py-16 md:py-24 bg-background relative overflow-hidden">
-      <div className="container">
+    <section id="features" className="py-16 md:py-24 bg-background relative overflow-hidden">
+      <RetroGrid className="absolute inset-0 opacity-40" />
+      <div className="container relative z-10">
         <BlurFade delay={0.2}>
           <div className="text-center space-y-4 mb-16">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20">
@@ -119,7 +122,12 @@ export default function NewFeaturesSection() {
         <BlurFade delay={0.4}>
           <BentoGrid>
             {features.map((feature, idx) => (
-              <BentoCard key={idx} {...feature} />
+              <div key={idx} className="group">
+                <BentoCard 
+                  {...feature}
+                  className={`${feature.className} hover:scale-[1.02] transition-all duration-300 hover:shadow-2xl hover:shadow-primary/20`}
+                />
+              </div>
             ))}
           </BentoGrid>
         </BlurFade>
@@ -127,11 +135,14 @@ export default function NewFeaturesSection() {
         {/* Magic Cards Section */}
         <BlurFade delay={0.6}>
           <div className="mt-24">
-            <h3 className="text-3xl font-bold text-center mb-12">
-              Built for Real Estate Success
-            </h3>
+            <div className="text-center mb-12">
+              <Badge className="mb-4">Why Choose Us</Badge>
+              <h3 className="text-3xl font-bold">
+                Built for Real Estate Success
+              </h3>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <MagicCard className="p-8 flex flex-col items-center text-center space-y-4">
+              <MagicCard className="p-8 flex flex-col items-center text-center space-y-4 hover:scale-105 transition-transform duration-300">
                 <div className="h-14 w-14 rounded-full bg-blue-500/10 flex items-center justify-center">
                   <TrendingUp className="h-7 w-7 text-blue-500" />
                 </div>
@@ -141,7 +152,7 @@ export default function NewFeaturesSection() {
                 </p>
               </MagicCard>
 
-              <MagicCard className="p-8 flex flex-col items-center text-center space-y-4">
+              <MagicCard className="p-8 flex flex-col items-center text-center space-y-4 hover:scale-105 transition-transform duration-300">
                 <div className="h-14 w-14 rounded-full bg-green-500/10 flex items-center justify-center">
                   <Users className="h-7 w-7 text-green-500" />
                 </div>
@@ -151,7 +162,7 @@ export default function NewFeaturesSection() {
                 </p>
               </MagicCard>
 
-              <MagicCard className="p-8 flex flex-col items-center text-center space-y-4">
+              <MagicCard className="p-8 flex flex-col items-center text-center space-y-4 hover:scale-105 transition-transform duration-300">
                 <div className="h-14 w-14 rounded-full bg-purple-500/10 flex items-center justify-center">
                   <Brain className="h-7 w-7 text-purple-500" />
                 </div>
